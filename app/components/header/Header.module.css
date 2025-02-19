@@ -1,15 +1,23 @@
+
+.mainContainer{
+    width: 90%;
+    margin: 0 auto; /* Центрирование контента */
+    /* padding: 20px; Отступы внутри контейнера */
+    box-sizing: border-box; /* Учитывание отступов и границ в ширине */
+  
+  }
+
 .header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     padding: 10px 20px; /* Отступы по бокам */
     background: linear-gradient(to right, #3D4CBF, #B1DCFD); /* Синий градиент */
-    position: fixed;
     width: 100%;
     top: 0;
     z-index: 1000;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Тень для хедера */
-    margin-top: 10px; /* Отступ сверху */
+    margin-top: 15px; /* Отступ сверху */
     border-radius: 50px;
   }
   
@@ -22,3 +30,4 @@
   .placeholder {
     flex-grow: 1;
   }
+

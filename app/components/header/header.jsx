@@ -9,7 +9,7 @@ const Header = () => {
 <Image
 aria-hidden
 src="/homeSweet.svg"
-alt="Globe icon"
+alt="home icon"
 width={50}
 height={25}
 />
