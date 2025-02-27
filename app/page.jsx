@@ -1,3 +1,4 @@
+"use client";
 import Image from "next/image";
 import styles from "./page.module.css";
 import Header from "./components/header/header";
@@ -5,12 +6,49 @@ import Header from "./components/header/header";
 
 import { Montserrat } from 'next/font/google'
 import { montserrat, montserrat_regular, roboto_mono } from "./fonts";
+import VideoUpload from "./components/videoUpload/videoUpload";
+import { useEffect, useState } from "react";
+import VideoPreview from "./components/videoUpload/videoPrewiev";
+import Link from "next/link";
+
+import { FormEvent } from 'react'
+import { useRouter } from 'next/router'
+
 
 
 export default function Home() {
+  const [videos, setVideos] = useState(() => {
+    const savedVideos = localStorage.getItem('videos');
+    return savedVideos ? JSON.parse(savedVideos) : [];
+  });
+
+
+  const handleLogout = () => {               
+    signOut(auth).then(() => {
+    // Sign-out successful.
+        <Link href="/">qwe</Link>
+
+        console.log("Signed out successfully")
+    }).catch((error) => {
+    // An error happened.
+    });
+}
+
+
+
+  useEffect(() => {
+    localStorage.setItem('videos', JSON.stringify(videos));
+  }, [videos]);
+
+  const handleUpload = (file) => {
+    const videoSrc = URL.createObjectURL(file);
+    setVideos([...videos, videoSrc]);
+  };
+
+
   return (
 <div className={styles.page}>
-      <div className={styles.headerText}>
+      {/* <div className={styles.headerText}>
         <div className={styles.mainTitle}>
           <Image
           className={styles.mainStates}
@@ -67,14 +105,33 @@ export default function Home() {
 словно мы не одни...
   </span>
 
-{/* <h2 className={}>
-словно мы одна энергия, 
-словно мы на одном концерте, 
-словно мы собрались с друзьями, 
-словно мы не одни...
-</h2> */}
 
-</div>
+
+</div> */}
+
+     <VideoUpload onUpload={handleUpload} />
+      <div style={{ display: 'flex', flexWrap: 'wrap' }}>
+        {videos.map((src, index) => (
+          <VideoPreview key={index} videoSrc={src} />
+        ))}
+      </div>
+
+
+
+
+      <>
+            <nav>
+                <p>
+                    Welcome Home
+                </p>
+
+                <div>
+                    <button onClick={handleLogout}>
+                        Logout
+                    </button>
+                </div>
+            </nav>
+        </>
 
     </div>
 

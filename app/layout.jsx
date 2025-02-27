@@ -8,7 +8,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
       <body >
 
-<div className="layout"> {/* ширина всего контейнер */}
+<div> 
 <div className={styles.mainContainer}>
 <Header />
 </div>

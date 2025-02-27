@@ -163,3 +163,19 @@ width: 35%;
     font-size: 16px;
   }
 }
+
+.videoBox{
+  padding: 100px;
+}
+
+
+.videoGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.videoGrid > * {
+  flex: 1 1 calc(33.333% - 16px);
+  box-sizing: border-box;
+}
