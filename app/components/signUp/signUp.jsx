@@ -5,7 +5,6 @@ import { auth } from "../configs/config";
 
 const Signup = () => {
     const navigate = useParams();
-
     const [email, setEmail] = useState('')
     const [password, setPassword] = useState('');
 

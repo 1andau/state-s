@@ -13,7 +13,10 @@ import Link from "next/link";
 
 import { FormEvent } from 'react'
 import { useRouter } from 'next/router'
-
+import { useAuthState } from 'react-firebase-hooks/auth';
+import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup,signOut } from 'firebase/auth';
+import { auth } from "./components/configs/config";
+// import Login from "./components/signUp/login";
 
 
 export default function Home() {
@@ -22,6 +25,61 @@ export default function Home() {
     return savedVideos ? JSON.parse(savedVideos) : [];
   });
 
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [user, loading] = useAuthState(auth);
+
+  console.log(user, "user name");
+  
+  // Функция для регистрации нового пользователя
+  const register = async () => {
+    try {
+      await createUserWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+      console.error("Error registering user:", error);
+    }
+  };
+
+  // Функция для входа пользователя
+  const login = async () => {
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+      console.error("Error logging in user:", error);
+    }
+  };
+
+    // Функция для входа через Google
+    const loginWithGoogle = async () => {
+      const provider = new GoogleAuthProvider();
+      provider.setCustomParameters({
+        prompt: 'select_account'
+      });
+      try {
+        await signInWithPopup(auth, provider);
+      } catch (error) {
+        console.error("Error logging in with Google:", error);
+      }
+    };
+
+      // Функция для выхода из системы
+  const logout = async () => {
+    try {
+      await signOut(auth);
+    } catch (error) {
+      console.error("Error logging out:", error);
+    }
+  };
+
+
+  
+    // if (loading) {
+    //   return <div>Loading...</div>;
+    // }
+  
+    // if (user) {
+    //   return <div>Welcome, {user.email}</div>;
+    // }
 
   const handleLogout = () => {               
     signOut(auth).then(() => {
@@ -48,6 +106,19 @@ export default function Home() {
 
   return (
 <div className={styles.page}>
+
+  <p>
+    {
+      user?.email
+    }
+  </p>
+
+
+  <p>{
+          user?.displayName
+
+    }</p>
+
       {/* <div className={styles.headerText}>
         <div className={styles.mainTitle}>
           <Image
@@ -109,29 +180,48 @@ export default function Home() {
 
 </div> */}
 
-     <VideoUpload onUpload={handleUpload} />
+
+     {/* <VideoUpload onUpload={handleUpload} />
       <div style={{ display: 'flex', flexWrap: 'wrap' }}>
         {videos.map((src, index) => (
           <VideoPreview key={index} videoSrc={src} />
         ))}
-      </div>
+      </div> */}
 
 
 
+{/* <Login/> */}
 
-      <>
-            <nav>
-                <p>
-                    Welcome Home
-                </p>
 
-                <div>
-                    <button onClick={handleLogout}>
-                        Logout
-                    </button>
-                </div>
-            </nav>
-        </>
+
+{user? (
+          <div>
+          <p>Welcome, {user.email}</p>
+          <button onClick={logout}>Logout</button>
+        </div>
+): (
+  <div>
+  <h2>Register/Login</h2>
+  <input
+    type="email"
+    value={email}
+    onChange={(e) => setEmail(e.target.value)}
+    placeholder="Email"
+  />
+  <input
+    type="password"
+    value={password}
+    onChange={(e) => setPassword(e.target.value)}
+    placeholder="Password"
+  />
+  <button onClick={register}>Register</button>
+  <button onClick={login}>Login</button>
+  <button onClick={loginWithGoogle}>Login with Google</button>
+</div>
+)}
+
+
+
 
     </div>
 

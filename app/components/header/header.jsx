@@ -1,21 +1,42 @@
 import styles from './Header.module.css';
 import Image from "next/image";
+import Link from 'next/link'
 
 
 const Header = () => {
   return (
     <header className={styles.header}>
 <div className={styles.logo}>
-<Image
+  <Link href='/'>
+  
+  <Image
 aria-hidden
-src="/homeSweet.svg"
-alt="home icon"
+src="/r.svg"
+alt="home"
 width={50}
-height={25}
+height={25}   
 />
+
+  </Link>
+
 </div>
 
       <div className={styles.placeholder}></div>
+
+      <Link href="/login">
+              <button type="button" className={styles.signIn}>
+                Sign in
+              </button>
+            </Link>
+
+
+            <Link href="/signUp">
+              <button type="button" className={styles.signIn}>
+                Sign Up
+              </button>
+            </Link>
+
+
     </header>
   );
 };
