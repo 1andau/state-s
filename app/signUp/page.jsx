@@ -3,8 +3,9 @@ import React, { useState } from 'react'
 import styles from './signUp.module.css'
 import Image from 'next/image'
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { auth } from '../components/configs/config';
+import { auth, db } from '../components/configs/config';
 import { useAuthState } from 'react-firebase-hooks/auth';
+import { getFirestore, collection, addDoc } from 'firebase/firestore';
 
 
 const Page = () => {
@@ -14,14 +15,22 @@ const Page = () => {
   const [nickname, setNickname] = useState('')
 
 
+console.log(db, "firestore");  
+  const register = async () => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const userId = userCredential.user.uid;
 
-    const register = async () => {
-      try {
-        await createUserWithEmailAndPassword(auth, email, password);
-      } catch (error) {
-        console.error("Error registering user:", error);
-      }
-    };
+      // Сохранение никнейма в Firestore
+      await addDoc(collection(db, 'users'), {
+        userId: userId,
+        email: email,
+        nickname: nickname,
+      });
+    } catch (error) {
+      console.error("Error registering user:", error);
+    }
+  };
   
       // Функция для входа пользователя
       const login = async () => {
@@ -50,7 +59,25 @@ const Page = () => {
   return (
     <>
     <div className={styles.container}>
-      {/* <h1>Hey guys, welcome to  states club </h1> */}
+    {user? (
+        <h1>hello {user.nickname}</h1>
+      ) : (
+        <h1>can u authorize plz?</h1>
+
+      )}
+
+
+{user? (
+  ""
+
+  
+): (
+
+  ""
+)}
+
+
+
 
       <h1 className={styles.title}>Sign up to state!s</h1>
       <div className={styles.gradientLine}></div>

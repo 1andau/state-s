@@ -2,7 +2,11 @@
 import { initializeApp } from "firebase/app";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { getFirestore, collection, addDoc } from "firebase/firestore";
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword } from "firebase/auth";
+import { getAuth  } from "firebase/auth";
+
+
+// import { getDatabase, set } from "firebase/database";
+
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -18,9 +22,21 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 const storage = getStorage(app);
-const db = getFirestore(app);
+export const db = getFirestore(app);
 export const auth = getAuth(app);
 export default app;
+
+
+// const addUser = (userId, name, email) => {
+//   set(ref(db, 'users/' + userId), {
+//     name: name,
+//     email: email,
+//     // Добавьте другие поля по мере необходимости
+//   });
+// };
+
+// addUser("user1", "John Doe", "john.doe@example.com");
+
 
 
 

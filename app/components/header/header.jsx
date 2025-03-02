@@ -23,7 +23,7 @@ height={25}
 
       <div className={styles.placeholder}></div>
 
-      <Link href="/login">
+      <Link href="/signIn">
               <button type="button" className={styles.signIn}>
                 Sign in
               </button>

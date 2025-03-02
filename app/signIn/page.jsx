@@ -44,6 +44,12 @@ const Page = () => {
   return (
  <>
     <div className={styles.container}>
+      {user? (
+        <h1>hello {user.email}</h1>
+      ) : (
+        <h1>can u authorize plz?</h1>
+
+      )}
       <h1 className={styles.title}>Join to state!s</h1>
       <p className={styles.subtitle}>share your reaction emotino!s shar!e together...</p>
       <div className={styles.steps}>

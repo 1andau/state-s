@@ -16,6 +16,7 @@ import { useRouter } from 'next/router'
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup,signOut } from 'firebase/auth';
 import { auth } from "./components/configs/config";
+import Logout from "./components/logout/logout";
 // import Login from "./components/signUp/login";
 
 
@@ -62,17 +63,7 @@ export default function Home() {
       }
     };
 
-      // Функция для выхода из системы
-  const logout = async () => {
-    try {
-      await signOut(auth);
-    } catch (error) {
-      console.error("Error logging out:", error);
-    }
-  };
 
-
-  
     // if (loading) {
     //   return <div>Loading...</div>;
     // }
@@ -80,18 +71,6 @@ export default function Home() {
     // if (user) {
     //   return <div>Welcome, {user.email}</div>;
     // }
-
-  const handleLogout = () => {               
-    signOut(auth).then(() => {
-    // Sign-out successful.
-        <Link href="/">qwe</Link>
-
-        console.log("Signed out successfully")
-    }).catch((error) => {
-    // An error happened.
-    });
-}
-
 
 
   useEffect(() => {
@@ -197,7 +176,8 @@ export default function Home() {
 {user? (
           <div>
           <p>Welcome, {user.email}</p>
-          <button onClick={logout}>Logout</button>
+          <Logout />
+          {/* <button onClick={logout}>Logout</button> */}
         </div>
 ): (
   <div>
