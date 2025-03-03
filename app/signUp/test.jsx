@@ -1,5 +1,8 @@
+
+
+
 "use client";
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import styles from './signUp.module.css'
 import Image from 'next/image'
 import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
@@ -7,7 +10,6 @@ import { auth, db } from '../components/configs/config';
 import { useAuthState } from 'react-firebase-hooks/auth';
 import { getFirestore, collection, addDoc, doc , getDoc, setDoc} from 'firebase/firestore';
 import Logout from '../components/logout/logout';
-
 
 
 const Page = () => {
@@ -60,15 +62,6 @@ const Page = () => {
     }
   };
   
-      // // Функция для входа пользователя
-      // const login = async () => {
-      //     try {
-      //       await signInWithEmailAndPassword(auth, email, password);
-      //     } catch (error) {
-      //       console.error("Error logging in user:", error);
-      //     }
-      //   };
-  
       // Функция для входа через Google
       const loginWithGoogle = async () => {
           const provider = new GoogleAuthProvider();
@@ -87,35 +80,14 @@ const Page = () => {
   return (
     <>
     <div className={styles.container}>
-{/* 
-
-<h1>HELLO</h1>
-
-
-{loginWithGoogle ? (
- <h1> {user?.displayName}</h1>
-): 
-<h1>{user?.nickname}</h1>
-
-} */}
-
 
 {user? (
 <>
+
 <h1>{userData ? userData.displayName : 'Loading...'}</h1>
 
 
-
-{/* {loginWithGoogle? (
- <h1> {user?.displayName}</h1>
-): (
-<h1>{user?.nickname}</h1>
-)
-
-} */}
-
 <h1>HELLO</h1>
-{/* <h1>{user?.displayName} || {user?.nickname}</h1> */}
 <h2>Lets change the world together!</h2>
 <Logout />
 </>

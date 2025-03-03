@@ -29,6 +29,7 @@ export default function Home() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [user, loading] = useAuthState(auth);
+  const [nickname, setNickname] = useState('')
 
   console.log(user, "user name");
   
@@ -86,7 +87,16 @@ export default function Home() {
   return (
 <div className={styles.page}>
 
-  <p>
+
+
+{loginWithGoogle ? (
+ <h1> {user?.displayName}</h1>
+): 
+<h1>{user?.nickname}</h1>
+
+}
+
+  {/* <p>
     {
       user?.email
     }
@@ -96,7 +106,7 @@ export default function Home() {
   <p>{
           user?.displayName
 
-    }</p>
+    }</p> */}
 
       {/* <div className={styles.headerText}>
         <div className={styles.mainTitle}>
@@ -175,13 +185,21 @@ export default function Home() {
 
 {user? (
           <div>
-          <p>Welcome, {user.email}</p>
+          {/* <p>Welcome, {user.email}</p> */}
           <Logout />
-          {/* <button onClick={logout}>Logout</button> */}
         </div>
 ): (
   <div>
   <h2>Register/Login</h2>
+
+  <input 
+        type="text" 
+        placeholder="nickname"
+         className={styles.input} 
+         onChange={(e) => setNickname(e.target.value)}
+         value={nickname}
+         />
+
   <input
     type="email"
     value={email}

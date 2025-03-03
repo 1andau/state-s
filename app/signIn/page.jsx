@@ -58,12 +58,12 @@ const Page = () => {
         <div className={styles.step}>3</div>
       </div>
       <form className={styles.form}>
-        <input 
+        {/* <input 
         type="text" 
         placeholder="nickname"
          className={styles.input} 
 
-         />
+         /> */}
         <input type="email" 
         placeholder="you@mail.com"
          className={styles.input}
@@ -84,7 +84,7 @@ const Page = () => {
 
         <br />
 
-        <button onClick={loginWithGoogle}>Login with Google</button>
+        {/* <button onClick={loginWithGoogle}>Login with Google</button> */}
 
 
         <button 
