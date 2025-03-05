@@ -2,12 +2,13 @@
 import React, { useEffect, useState } from 'react'
 import styles from './signUp.module.css'
 import Image from 'next/image'
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
 import { auth, db } from '../components/configs/config';
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { getFirestore, collection, addDoc, doc , getDoc, setDoc} from 'firebase/firestore';
+import {  doc , getDoc, setDoc} from 'firebase/firestore';
 import Logout from '../components/logout/logout';
 
+import {  toast } from 'react-toastify';
 
 
 const Page = () => {
@@ -17,22 +18,30 @@ const Page = () => {
   const [nickname, setNickname] = useState('')
   const [userData, setUserData] = useState(null);
 
-  const db = getFirestore(auth.app); // Инициализация Firestore
-
-  console.log(user, 'userData');
-
-
+  console.log(user, "GoogleUser");
+  
   useEffect(() => {
     if (user) {
       const fetchUserData = async () => {
         try {
-          const userDocRef = doc(db, 'users', user.uid);
+          const userDocRef = doc(db, 'newUsers', user.uid);
           const userDocSnap = await getDoc(userDocRef);
           if (userDocSnap.exists()) {
             console.log("User data:", userDocSnap.data());
             setUserData(userDocSnap.data());
           } else {
-            console.log("No such document!");
+
+            toast.error('No such document', {
+              position: "bottom-right",
+              autoClose: 5000,
+              hideProgressBar: false,
+              closeOnClick: false,
+              pauseOnHover: true,
+              draggable: true,
+              progress: undefined,
+              theme: "light",
+              transition: Bounce,
+              });
           }
         } catch (error) {
           console.error("Error fetching user data:", error);
@@ -41,6 +50,8 @@ const Page = () => {
       fetchUserData();
     }
   }, [user]);
+
+  // console.log(userData?.displayName,"userData");
 
 
   const register = async () => {
@@ -60,62 +71,42 @@ const Page = () => {
     }
   };
   
-      // // Функция для входа пользователя
-      // const login = async () => {
-      //     try {
-      //       await signInWithEmailAndPassword(auth, email, password);
-      //     } catch (error) {
-      //       console.error("Error logging in user:", error);
-      //     }
-      //   };
+
   
       // Функция для входа через Google
       const loginWithGoogle = async () => {
-          const provider = new GoogleAuthProvider();
-          provider.setCustomParameters({
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({
             prompt: 'select_account'
-          });
-          try {
-            await signInWithPopup(auth, provider);
-          } catch (error) {
+        });
+        try {
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+            
+            console.log(user, 'user'); // Проверьте, что пользователь не null
+        } catch (error) {
+
+
             console.error("Error logging in with Google:", error);
-          }
-        };  
+        }
+    }; 
 
 
 
   return (
     <>
     <div className={styles.container}>
-{/* 
-
-<h1>HELLO</h1>
-
-
-{loginWithGoogle ? (
- <h1> {user?.displayName}</h1>
-): 
-<h1>{user?.nickname}</h1>
-
-} */}
-
 
 {user? (
 <>
-<h1>{userData ? userData.displayName : 'Loading...'}</h1>
-
-
-
-{/* {loginWithGoogle? (
- <h1> {user?.displayName}</h1>
-): (
-<h1>{user?.nickname}</h1>
-)
-
-} */}
 
 <h1>HELLO</h1>
-{/* <h1>{user?.displayName} || {user?.nickname}</h1> */}
+
+<h1>{userData ? userData.displayName : 'Loading...'}</h1>
+
+  <h1>{user.displayName}</h1>
+
+
 <h2>Lets change the world together!</h2>
 <Logout />
 </>

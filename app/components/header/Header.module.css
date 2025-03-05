@@ -1,8 +1,5 @@
 
 .mainContainer{
-    width: 90%;
-    margin: 0 auto; /* Центрирование контента */
-    /* padding: 20px; Отступы внутри контейнера */
     box-sizing: border-box; /* Учитывание отступов и границ в ширине */
   
   }

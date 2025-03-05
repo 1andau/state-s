@@ -1,4 +1,13 @@
+@font-face {
+  font-family: 'Druk Wide Bold';
+   src: url('/fonts/DrukWideBold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+}
+
+
 :root {
+
   --background: #ffffff;
   --foreground: #171717;
 }
@@ -11,8 +20,18 @@
 }
 
 h1 {
-  font-family: var(--font-roboto-mono);
-  font-size: 30px;
+font-size: 30px;
+}
+
+h2{
+  src: url('/state-s/public/fonts/DrukWideBold.ttf') format('truetype');
+  font-style: normal;
+  font-family: 'Druk Wide Bold', sans-serif;
+}
+
+p{
+  font-family: 'Montserrat', sans-serif;
+
 }
 
 
@@ -23,12 +42,7 @@ body {
 }
 
 body {
-  color: var(--foreground);
-  background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  width: 90%;
+  width: 70%;
   margin: 0 auto;
 
 }
@@ -49,6 +63,8 @@ a {
     color-scheme: dark;
   }
 }
+
+
 
 /* 
 

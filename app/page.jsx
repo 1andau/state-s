@@ -1,23 +1,26 @@
 "use client";
 import Image from "next/image";
 import styles from "./page.module.css";
+
 import Header from "./components/header/header";
-// import PhoneImage from "../public/iPhone.svg"
-
-import { Montserrat } from 'next/font/google'
-import { montserrat, montserrat_regular, roboto_mono } from "./fonts";
-import VideoUpload from "./components/videoUpload/videoUpload";
 import { useEffect, useState } from "react";
-import VideoPreview from "./components/videoUpload/videoPrewiev";
-import Link from "next/link";
 
-import { FormEvent } from 'react'
-import { useRouter } from 'next/router'
 import { useAuthState } from 'react-firebase-hooks/auth';
-import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup,signOut } from 'firebase/auth';
-import { auth } from "./components/configs/config";
+import {signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup,signOut } from 'firebase/auth';
+import {auth } from "./components/configs/config";
 import Logout from "./components/logout/logout";
-// import Login from "./components/signUp/login";
+import VideoUpload from "./components/videoUpload/videoUpload";
+import VideoPreview from "./components/videoUpload/videoPrewiev";
+
+
+const reactions = [
+  { id: 1, name: 'shaq', image: '/shaq.svg' },
+  { id: 2, name: 'jk boys', image: '/shaq.svg'  },
+  { id: 3, name: 'zack', image: '/shaq.svg' },
+  { id: 4, name: 'still dontai', image: '/shaq.svg' },
+  { id: 5, name: 'kai cenat', image: '/shaq.svg' },
+  { id: 6, name: 'RT tv', image: '/shaq.svg' },
+];
 
 
 export default function Home() {
@@ -31,7 +34,7 @@ export default function Home() {
   const [user, loading] = useAuthState(auth);
   const [nickname, setNickname] = useState('')
 
-  console.log(user, "user name");
+  console.log(user, "GOOOOOOOGLE");
   
   // Функция для регистрации нового пользователя
   const register = async () => {
@@ -51,27 +54,25 @@ export default function Home() {
     }
   };
 
-    // Функция для входа через Google
-    const loginWithGoogle = async () => {
-      const provider = new GoogleAuthProvider();
-      provider.setCustomParameters({
-        prompt: 'select_account'
-      });
-      try {
-        await signInWithPopup(auth, provider);
-      } catch (error) {
-        console.error("Error logging in with Google:", error);
-      }
-    };
+      // Функция для входа через Google
+      const loginWithGoogle = async () => {
+        const provider = new GoogleAuthProvider();
+        provider.setCustomParameters({
+            prompt: 'select_account'
+        });
+        try {
+            const result = await signInWithPopup(auth, provider);
+            const user = result.user;
+            
+            console.log(user, 'user'); // Проверьте, что пользователь не null
+        } catch (error) {
 
 
-    // if (loading) {
-    //   return <div>Loading...</div>;
-    // }
-  
-    // if (user) {
-    //   return <div>Welcome, {user.email}</div>;
-    // }
+            console.error("Error logging in with Google:", error);
+        }
+    }; 
+
+
 
 
   useEffect(() => {
@@ -85,90 +86,18 @@ export default function Home() {
 
 
   return (
-<div className={styles.page}>
-
-
-
-{loginWithGoogle ? (
- <h1> {user?.displayName}</h1>
-): 
-<h1>{user?.nickname}</h1>
-
-}
-
-  {/* <p>
-    {
-      user?.email
-    }
-  </p>
-
-
-  <p>{
-          user?.displayName
-
-    }</p> */}
-
-      {/* <div className={styles.headerText}>
-        <div className={styles.mainTitle}>
-          <Image
-          className={styles.mainStates}
+<div className={styles.mainPage}>
+<div className={styles.header} >
+<Image
+          className={styles.mainBanner}
             aria-hidden
-            src="/STATE!S.svg"
+            src="/banner.svg"
             alt="home icon"
-            width={900}
-            height={150}
+            width={800}
+            height={400}
           />
-        </div>
-        <h2 className={styles.subTitle}>
-          мы <span className={styles.together}>ВМЕСТЕ</span> делаем музыку только лучше
-        </h2>
-        <div className={styles.boxDescription}>
-          <p className={styles.description}>
-            Загружай свою видео-реакцию, делитесь своими эмоциями на твою любимую музыку и смотри как от нее также открываются другие
-          </p>
-        </div>
-      </div>
-      <div className={styles.phoneContainer}>
-        <Image
-          className={styles.phoneImage}
-          aria-hidden
-          src="/iphone.svg"
-          alt="phone icon"
-          width={400}
-          height={600}
-        />
-      </div>
-      <div className={styles.exclamation}>
-        <Image
-          className={styles.exclamationImage}
-          aria-hidden
-          src="/!.svg"
-          alt="exclamation icon"
-          width={100}
-          height={100}
-        />
-      </div>
 
-
-<div className={styles.secondTitle}>
-
-<h2>
-Мы верим, что музыка объединяет людей. 
-И когда разделяешь ее с кем то 
-— она становится только лучше. 
-</h2>
-
-<span className={styles.secondTitleSpan}> 
-словно мы одна энергия, 
-словно мы на одном концерте, 
-словно мы собрались с друзьями, 
-словно мы не одни...
-  </span>
-
-
-
-</div> */}
-
+<p className={styles.date}>03.07.2025</p>
 
      {/* <VideoUpload onUpload={handleUpload} />
       <div style={{ display: 'flex', flexWrap: 'wrap' }}>
@@ -177,51 +106,44 @@ export default function Home() {
         ))}
       </div> */}
 
-
-
-{/* <Login/> */}
-
-
-
-{user? (
-          <div>
-          {/* <p>Welcome, {user.email}</p> */}
-          <Logout />
-        </div>
-): (
-  <div>
-  <h2>Register/Login</h2>
-
-  <input 
-        type="text" 
-        placeholder="nickname"
-         className={styles.input} 
-         onChange={(e) => setNickname(e.target.value)}
-         value={nickname}
-         />
-
-  <input
-    type="email"
-    value={email}
-    onChange={(e) => setEmail(e.target.value)}
-    placeholder="Email"
-  />
-  <input
-    type="password"
-    value={password}
-    onChange={(e) => setPassword(e.target.value)}
-    placeholder="Password"
-  />
-  <button onClick={register}>Register</button>
-  <button onClick={login}>Login</button>
-  <button onClick={loginWithGoogle}>Login with Google</button>
-</div>
-)}
-
-
-
-
     </div>
+
+<div className={styles.artistContainer}>
+<div className={styles.artistText}>
+<h2 className={styles.albumTitle}>Playboi Carti</h2>
+<p className={styles.reactionsCount}>
+  <span className={styles.countSpan}>1137 </span>
+   reactions</p>
+</div>
+
+<div className={styles.imageContainer}>
+      <Image
+          className={styles.avatar}
+            aria-hidden
+            src="/carti.svg"
+            alt="home icon"
+            width={100}
+            height={100}
+          />
+    </div>
+</div>
+
+<h2 className={styles.secondTitle}>Reactions to the album</h2>
+
+<div className={styles.reactions}>
+      {reactions.map((react) => (
+        <div key={react.id} className={styles.reactionItem}>
+          <img src={react.image} alt={react.name} className={styles.reactionImage} />
+          <p className={styles.reactionName}>{react.name}</p>
+        </div>
+      ))}
+    </div>
+
+
+
+
+
+</div>
 
 
 

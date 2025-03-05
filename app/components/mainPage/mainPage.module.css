@@ -1,0 +1,165 @@
+.page {
+    margin: 0 auto; /* Центрирование контента */
+    padding: 20px; /* Отступы внутри контейнера */
+    box-sizing: border-box; /* Учитывание отступов и границ в ширине */
+    position: relative;
+    color: #ffffff; /* Цвет текста */
+    min-height: 100svh;
+      align-items: center;
+    justify-items: center;
+    /* max-width:  90%; */
+  
+  }
+  .together{
+    color: #FDB927 ;
+    font-weight: bold;
+  }
+  
+  .headerText {
+    text-align: left;
+    margin-top: 80px; /* Отступ сверху для контента под фиксированным хедером */
+  }
+  
+  /* .mainTitle {
+    margin-bottom: 10px;
+  } */
+  
+  .subTitle {
+    font-size: 32px;
+    font-weight: bold;
+    margin-bottom: 20px;
+  }
+  
+  .boxDescription{
+  width: 35%;
+  
+  }
+  
+  .description {
+    font-size: 18px;
+    line-height: 1.3;
+  }
+  
+  .phoneContainer {
+    position: absolute;
+    top: 60px;
+    right: 60px; /* Сдвиг вправо, чтобы затрагивать последнюю букву "S" */
+    /* width: 40%; */
+    max-width: 600px;
+    z-index: 1; /* Уровень слоя для изображения телефона */
+  }
+  
+  
+  .phoneImage {
+    width: 100%;
+    height: auto;
+  }
+  
+  .exclamation {
+    /* position: absolute; */
+    margin: 90px 0px 60px 0px;
+  }
+  
+  .exclamationImage{
+    max-width: 100px ;
+  }
+  
+  
+  .secondTitle{
+    width: 50%;
+  }
+  
+  .secondTitleSpan{
+    color: #414141;
+    
+  }
+  
+  
+  
+  
+  
+  /* Медиа-запросы для адаптивности */
+  @media (max-width: 2500px) {
+    .page {
+      width: 85%;
+    }
+    .phoneContainer {
+      /* right: -15%; */
+      width: 50%;
+    }
+    .mainStates{
+      /* right: -5%; */
+      width: 90%;
+    }
+  }
+  
+  @media (max-width: 1600px) {
+    .page {
+      width: 75%;
+    }
+    .phoneContainer {
+      right: -5%;
+      width: 50%;
+    }
+    .mainStates{
+      right: -5%;
+      width: 90%;
+    }
+  }
+  
+  @media (max-width: 1200px) {
+    .page {
+      width: 75%;
+    }
+    .phoneContainer {
+      right: -5%;
+      width: 50%;
+    }
+    .mainStates{
+      right: -5%;
+      width: 90%;
+    }
+  }
+  
+  @media (max-width: 768px) {
+    .page {
+      width: 98%;
+    }
+  
+    .mainStates{
+      right: -5%;
+      width: 90%;
+    }
+  
+    .phoneContainer {
+      right: -5%;
+      width: 50%;
+    }
+  
+    .boxDescription {
+      width: 100%;
+    }
+  }
+  
+  @media (max-width: 480px) {
+    .page {
+      width: 100%;
+    }
+  
+    .phoneContainer {
+      right: 0;
+      width: 60%;
+    }
+  
+    .boxDescription {
+      width: 100%;
+    }
+  
+    .subTitle {
+      font-size: 28px;
+    }
+  
+    .description {
+      font-size: 16px;
+    }
+  }
