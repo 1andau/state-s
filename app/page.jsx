@@ -5,16 +5,19 @@ import styles from "./page.module.css";
 import Header from "./components/header/header";
 import { useEffect, useState } from "react";
 
-import { useAuthState } from 'react-firebase-hooks/auth';
-import {signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup,signOut } from 'firebase/auth';
-import {auth } from "./components/configs/config";
-import Logout from "./components/logout/logout";
-import VideoUpload from "./components/videoUpload/videoUpload";
-import VideoPreview from "./components/videoUpload/videoPrewiev";
+// import { useAuthState } from 'react-firebase-hooks/auth';
+// import {signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup,signOut } from 'firebase/auth';
+// import {auth } from "./components/configs/config";
+// import Logout from "./components/logout/logout";
+// import VideoUpload from "./components/videoUpload/VideoPlayer";
+// import VideoPreview from "./components/videoUpload/videoUploader";
+import VideoUploader from "./components/videoUpload/videoUploader";
+import VideoPlayer from "./components/videoUpload/VideoPlayer";
+import { fetchVideos } from "./components/utls/showPreview";
 
 
 const reactions = [
-  { id: 1, name: 'shaq', image: '/shaq.svg' },
+  // { id: 1, name: 'shaq', image: '/shaq.svg' },
   { id: 2, name: 'jk boys', image: '/shaq.svg'  },
   { id: 3, name: 'zack', image: '/shaq.svg' },
   { id: 4, name: 'still dontai', image: '/shaq.svg' },
@@ -24,65 +27,26 @@ const reactions = [
 
 
 export default function Home() {
-  const [videos, setVideos] = useState(() => {
-    const savedVideos = localStorage.getItem('videos');
-    return savedVideos ? JSON.parse(savedVideos) : [];
-  });
-
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [user, loading] = useAuthState(auth);
-  const [nickname, setNickname] = useState('')
-
-  console.log(user, "GOOOOOOOGLE");
-  
-  // Функция для регистрации нового пользователя
-  const register = async () => {
-    try {
-      await createUserWithEmailAndPassword(auth, email, password);
-    } catch (error) {
-      console.error("Error registering user:", error);
-    }
-  };
-
-  // Функция для входа пользователя
-  const login = async () => {
-    try {
-      await signInWithEmailAndPassword(auth, email, password);
-    } catch (error) {
-      console.error("Error logging in user:", error);
-    }
-  };
-
-      // Функция для входа через Google
-      const loginWithGoogle = async () => {
-        const provider = new GoogleAuthProvider();
-        provider.setCustomParameters({
-            prompt: 'select_account'
-        });
-        try {
-            const result = await signInWithPopup(auth, provider);
-            const user = result.user;
-            
-            console.log(user, 'user'); // Проверьте, что пользователь не null
-        } catch (error) {
-
-
-            console.error("Error logging in with Google:", error);
-        }
-    }; 
-
-
-
+  const [videos, setVideos] = useState([]);
 
   useEffect(() => {
-    localStorage.setItem('videos', JSON.stringify(videos));
-  }, [videos]);
+    const loadVideos = async () => {
+      const videosData = await fetchVideos();
+      console.log('Fetched videos:', videosData); // Логирование данных
+      setVideos(videosData);
+    };
 
-  const handleUpload = (file) => {
-    const videoSrc = URL.createObjectURL(file);
-    setVideos([...videos, videoSrc]);
+    loadVideos();
+  }, []);
+
+  const handleUploadSuccess = (videoData) => {
+    if (videoData.playback && (videoData.playback.hls || videoData.playback.dash)) {
+      setVideos([...videos, videoData]);
+    } else {
+      console.log('Invalid video data:', videoData);
+    }
   };
+
 
 
   return (
@@ -130,6 +94,25 @@ export default function Home() {
 
 <h2 className={styles.secondTitle}>Reactions to the album</h2>
 
+
+
+<div className={styles.container}>
+      <h1>Video Upload and Display</h1>
+      <VideoUploader onUploadSuccess={handleUploadSuccess} />
+      <div className={styles.videoGrid}>
+        {videos.map((video, index) => (
+          <VideoPlayer
+            key={index}
+            videoUrl={video.playback.hls} // Используем HLS
+            thumbnailUrl={video.thumbnail}
+          />
+        ))}
+      </div>
+    </div>
+
+
+
+
 <div className={styles.reactions}>
       {reactions.map((react) => (
         <div key={react.id} className={styles.reactionItem}>
@@ -138,6 +121,20 @@ export default function Home() {
         </div>
       ))}
     </div>
+
+
+
+
+{/* 
+    <div className={styles.container}>
+      <h1>Video Upload and Display</h1>
+      <VideoUploader onUploadSuccess={handleUploadSuccess} />
+      <div className={styles.videoGrid}>
+        {videos.map((video, index) => (
+          <VideoPlayer key={index} videoUrl={video.playback.url} />
+        ))}
+      </div>
+    </div> */}
 
 
 

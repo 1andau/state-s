@@ -113,7 +113,19 @@ padding: 30px 0 30px 0;
 
 
 
+.container {
+  padding: 20px;
+  text-align: center;
+}
 
+.videoGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+  justify-content: center;
+}
+
+/* 
 .videoBox{
   padding: 100px;
 }
@@ -128,4 +140,4 @@ padding: 30px 0 30px 0;
 .videoGrid > * {
   flex: 1 1 calc(33.333% - 16px);
   box-sizing: border-box;
-}
+} */
