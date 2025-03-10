@@ -1,23 +1,13 @@
 "use client";
 import Image from "next/image";
 import styles from "./page.module.css";
-
-import Header from "./components/header/header";
 import { useEffect, useState } from "react";
-
-// import { useAuthState } from 'react-firebase-hooks/auth';
-// import {signInWithEmailAndPassword, createUserWithEmailAndPassword, GoogleAuthProvider, signInWithPopup,signOut } from 'firebase/auth';
-// import {auth } from "./components/configs/config";
-// import Logout from "./components/logout/logout";
-// import VideoUpload from "./components/videoUpload/VideoPlayer";
-// import VideoPreview from "./components/videoUpload/videoUploader";
 import VideoUploader from "./components/videoUpload/videoUploader";
 import VideoPlayer from "./components/videoUpload/VideoPlayer";
 import { fetchVideos } from "./components/utls/showPreview";
 
 
 const reactions = [
-  // { id: 1, name: 'shaq', image: '/shaq.svg' },
   { id: 2, name: 'jk boys', image: '/shaq.svg'  },
   { id: 3, name: 'zack', image: '/shaq.svg' },
   { id: 4, name: 'still dontai', image: '/shaq.svg' },
@@ -29,10 +19,12 @@ const reactions = [
 export default function Home() {
   const [videos, setVideos] = useState([]);
 
+
   useEffect(() => {
     const loadVideos = async () => {
       const videosData = await fetchVideos();
-      console.log('Fetched videos:', videosData); // Логирование данных
+      console.log(videosData, 'this is video data');
+      
       setVideos(videosData);
     };
 
@@ -105,13 +97,13 @@ export default function Home() {
             key={index}
             videoUrl={video.playback.hls} // Используем HLS
             thumbnailUrl={video.thumbnail}
+            preview={video.preview}
+
+
           />
         ))}
       </div>
     </div>
-
-
-
 
 <div className={styles.reactions}>
       {reactions.map((react) => (

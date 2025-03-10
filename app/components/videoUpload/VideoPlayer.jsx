@@ -1,12 +1,14 @@
 "use client";
 import { useEffect, useRef, useState } from 'react';
-import Hls from 'hls.js'; 
+import Hls from 'hls.js';
 import styles from './VideoPlayer.module.css';
 
-const VideoPlayer = ({ videoUrl, thumbnailUrl }) => {
+const VideoPlayer = ({ videoUrl }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const videoRef = useRef(null);
+  const previewVideoRef = useRef(null); // Ссылка на элемент <video> для превью
+  const hlsPreviewRef = useRef(null); // Ссылка на экземпляр Hls для превью
 
   const handleOpenModal = () => {
     setIsPlaying(true);
@@ -30,12 +32,60 @@ const VideoPlayer = ({ videoUrl, thumbnailUrl }) => {
     }
   };
 
+  // для превью
+  useEffect(() => {
+    const previewVideo = previewVideoRef.current;
+
+    if (previewVideo) {
+      if (Hls.isSupported()) {
+        // Используем hls для браузеров, которые не поддерживают HLS нативно
+        const hls = new Hls();
+        hlsPreviewRef.current = hls; // Сохраняем экземпляр Hls
+        hls.loadSource(videoUrl);
+        hls.attachMedia(previewVideo);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => {
+          previewVideo.currentTime = 0; // Начинаем с 0 секунд
+          previewVideo.play();
+        });
+        hls.on(Hls.Events.ERROR, (event, data) => {
+          console.error('HLS error:', data);
+        });
+      } else if (previewVideo.canPlayType('application/vnd.apple.mpegurl')) {
+        // Для браузеров, которые поддерживают HLS нативно (типа Safari)
+        previewVideo.src = videoUrl;
+        previewVideo.currentTime = 0; // Начинаем с 0 секунд
+        previewVideo.play();
+      } else {
+        console.error('HLS is not supported in this browser');
+      }
+
+      // Обработчик для остановки видео после 3 секунд
+      const handleTimeUpdate = () => {
+        if (previewVideo.currentTime >= 3) {
+          previewVideo.pause();
+          previewVideo.currentTime = 0; // Сбрасываем время для повторного воспроизведения
+          previewVideo.play(); // Зацикливаем 
+        }
+      };
+
+      previewVideo.addEventListener('timeupdate', handleTimeUpdate);
+
+      // Очистка
+      return () => {
+        if (hlsPreviewRef.current) {
+          hlsPreviewRef.current.destroy(); // Уничтожаем экземпляр Hls
+        }
+        previewVideo.removeEventListener('timeupdate', handleTimeUpdate);
+      };
+    }
+  }, [videoUrl]);
+
+  // Эффект для основного видео
   useEffect(() => {
     if (isPlaying && videoRef.current) {
       const video = videoRef.current;
 
       if (Hls.isSupported()) {
-        // Используем hls.js для браузеров, которые не поддерживают HLS нативно
         const hls = new Hls();
         hls.loadSource(videoUrl);
         hls.attachMedia(video);
@@ -48,7 +98,6 @@ const VideoPlayer = ({ videoUrl, thumbnailUrl }) => {
           setIsLoading(false);
         });
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        // Для браузеров, которые поддерживают HLS нативно (например, Safari)
         video.src = videoUrl;
         video.addEventListener('loadeddata', () => {
           setIsLoading(false);
@@ -67,11 +116,16 @@ const VideoPlayer = ({ videoUrl, thumbnailUrl }) => {
 
   return (
     <div className={styles.videoContainer}>
-      <div
-        className={styles.preview}
-        style={{ backgroundImage: `url(${thumbnailUrl})` }}
-        onClick={handleOpenModal}
-      ></div>
+      <div className={styles.preview} onClick={handleOpenModal}>
+        <video 
+          ref={previewVideoRef}
+          muted
+          loop
+          autoPlay
+          playsInline
+          className={styles.previewVideo}
+        />
+      </div>
       {isPlaying && (
         <div className={styles.modal} onClick={handleCloseModal}>
           <div className={styles.videoContent} onClick={e => e.stopPropagation()}>
@@ -81,6 +135,7 @@ const VideoPlayer = ({ videoUrl, thumbnailUrl }) => {
               height="360"
               controls
               autoPlay
+              className={styles.video}
             >
               Your browser does not support the video tag.
             </video>

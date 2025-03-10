@@ -1,18 +1,14 @@
 
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useState } from 'react';
 import axios from 'axios';
 
 
 const VideoUploader = ({ onUploadSuccess }) => {
   const [file, setFile] = useState(null);
 
-
-  
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
   };
-
-
 
   const handleUpload = async () => {
     if (!file) return;
