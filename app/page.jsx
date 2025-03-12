@@ -7,15 +7,6 @@ import VideoPlayer from "./components/videoUpload/VideoPlayer";
 import { fetchVideos } from "./components/utls/showPreview";
 
 
-const reactions = [
-  { id: 2, name: 'jk boys', image: '/shaq.svg'  },
-  { id: 3, name: 'zack', image: '/shaq.svg' },
-  { id: 4, name: 'still dontai', image: '/shaq.svg' },
-  { id: 5, name: 'kai cenat', image: '/shaq.svg' },
-  { id: 6, name: 'RT tv', image: '/shaq.svg' },
-];
-
-
 export default function Home() {
   const [videos, setVideos] = useState([]);
 
@@ -39,6 +30,9 @@ export default function Home() {
     }
   };
 
+  const getVideoOrientation = (width, height) => {
+    return width > height ? 'landscape' : 'portrait';
+  };
 
 
   return (
@@ -55,12 +49,7 @@ export default function Home() {
 
 <p className={styles.date}>03.07.2025</p>
 
-     {/* <VideoUpload onUpload={handleUpload} />
-      <div style={{ display: 'flex', flexWrap: 'wrap' }}>
-        {videos.map((src, index) => (
-          <VideoPreview key={index} videoSrc={src} />
-        ))}
-      </div> */}
+
 
     </div>
 
@@ -92,44 +81,27 @@ export default function Home() {
       <h1>Video Upload and Display</h1>
       <VideoUploader onUploadSuccess={handleUploadSuccess} />
       <div className={styles.videoGrid}>
-        {videos.map((video, index) => (
-          <VideoPlayer
-            key={index}
-            videoUrl={video.playback.hls} // Используем HLS
-            thumbnailUrl={video.thumbnail}
-            preview={video.preview}
+        {videos.map((video, index) => {
+          const orientation = getVideoOrientation(video.input.width, video.input.height);
 
-
-          />
-        ))}
+          return (
+            <div
+              key={video.uid}
+              className={`${styles.videoItem} ${
+                orientation === 'landscape' ? styles.landscape : styles.portrait
+              }`}
+            >
+              <VideoPlayer
+                videoUrl={video.playback.hls}
+                thumbnailUrl={video.thumbnail}
+                widthVideo={video.input.width}
+                heightVideo={video.input.height}
+              />
+            </div>
+          );
+        })}
       </div>
     </div>
-
-<div className={styles.reactions}>
-      {reactions.map((react) => (
-        <div key={react.id} className={styles.reactionItem}>
-          <img src={react.image} alt={react.name} className={styles.reactionImage} />
-          <p className={styles.reactionName}>{react.name}</p>
-        </div>
-      ))}
-    </div>
-
-
-
-
-{/* 
-    <div className={styles.container}>
-      <h1>Video Upload and Display</h1>
-      <VideoUploader onUploadSuccess={handleUploadSuccess} />
-      <div className={styles.videoGrid}>
-        {videos.map((video, index) => (
-          <VideoPlayer key={index} videoUrl={video.playback.url} />
-        ))}
-      </div>
-    </div> */}
-
-
-
 
 
 </div>

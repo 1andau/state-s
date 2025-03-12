@@ -15,7 +15,7 @@ const Page = () => {
     try {
       await createUserWithEmailAndPassword(auth, email, password);
     } catch (error) {
-      console.error("Error registering user:", error);
+      console.log("Error registering user:", error);
     }
   };
 
@@ -24,7 +24,7 @@ const Page = () => {
         try {
           await signInWithEmailAndPassword(auth, email, password);
         } catch (error) {
-          console.error("Error logging in user:", error);
+          console.log("Error logging in user:", error);
         }
       };
 
@@ -37,7 +37,7 @@ const Page = () => {
         try {
           await signInWithPopup(auth, provider);
         } catch (error) {
-          console.error("Error logging in with Google:", error);
+          console.log("Error logging in with Google:", error);
         }
       };  
 

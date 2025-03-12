@@ -44,7 +44,7 @@ const Page = () => {
               });
           }
         } catch (error) {
-          console.error("Error fetching user data:", error);
+          console.log("Error fetching user data:", error);
         }
       };
       fetchUserData();
@@ -67,7 +67,7 @@ const Page = () => {
       });
       console.log("User registered with nickname:", nickname);
     } catch (error) {
-      console.error("Error registering user:", error);
+      console.log("Error registering user:", error);
     }
   };
   
@@ -87,7 +87,7 @@ const Page = () => {
         } catch (error) {
 
 
-            console.error("Error logging in with Google:", error);
+            console.log("Error logging in with Google:", error);
         }
     }; 
 

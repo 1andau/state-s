@@ -29,7 +29,7 @@ export default function Home() {
     try {
       await createUserWithEmailAndPassword(auth, email, password);
     } catch (error) {
-      console.error("Error registering user:", error);
+      console.log("Error registering user:", error);
     }
   };
 
@@ -38,7 +38,7 @@ export default function Home() {
     try {
       await signInWithEmailAndPassword(auth, email, password);
     } catch (error) {
-      console.error("Error logging in user:", error);
+      console.log("Error logging in user:", error);
     }
   };
 
@@ -56,7 +56,7 @@ export default function Home() {
         } catch (error) {
 
 
-            console.error("Error logging in with Google:", error);
+            console.log("Error logging in with Google:", error);
         }
     }; 
 

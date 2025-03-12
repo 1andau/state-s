@@ -14,7 +14,7 @@ export const fetchVideos = async () => {
     );
     return response.data.result;
   } catch (error) {
-    console.error('Error fetching videos:', error);
+    console.log('Error fetching videos:', error);
     return [];
   }
 };

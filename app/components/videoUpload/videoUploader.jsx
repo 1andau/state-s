@@ -29,7 +29,7 @@ const VideoUploader = ({ onUploadSuccess }) => {
       );
       onUploadSuccess(response.data);
     } catch (error) {
-      console.error('Error uploading video:', error);
+      console.log('Error uploading video:', error);
     }
   };
 

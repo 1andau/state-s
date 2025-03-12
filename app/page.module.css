@@ -1,19 +1,9 @@
 
-
-
-.mainPage{
-  /* width: 90%; */
-}
-
-
-
 .header {
   text-align: center;
   position: relative;
   padding: 20px;
-  /* background-color: #000; */
   color: #fff;
-  /* width: 100%; */
 
 }
 .mainBanner{
@@ -33,9 +23,7 @@
   right: 140px;
 }
 
-/* components/Album.module.css */
 .artistContainer{
-
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -71,45 +59,11 @@
 }
 
 
-
-
-
 .secondTitle{
   
 padding: 30px 0 30px 0;
 }
 
-.reactions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 10px;
-  padding: 20px;
-  /* background-color: #000; */
-}
-
-.reactionItem {
-  text-align: center;
-  color: #fff;
-  flex: 1 0 30%; /* Ensure 3 items per row */
-  max-width: 30%; /* Ensure 3 items per row */
-  box-sizing: border-box;
-}
-
-.reactionImage {
-  width: 100%;
-  border-radius: 5%;
-  object-fit: cover;
-  aspect-ratio: 1; /* Maintain a square aspect ratio */
-}
-
-.reactionName {
-  margin-top: 5px;
-  font-size: 0.9rem;
-  white-space: nowrap; /* Prevent name from wrapping */
-  overflow: hidden; /* Hide overflow if name is too long */
-  text-overflow: ellipsis; /* Show ellipsis for overflow */
-}
 
 
 
@@ -121,23 +75,24 @@ padding: 30px 0 30px 0;
 .videoGrid {
   display: flex;
   flex-wrap: wrap;
-  gap: 20px;
+  gap: 10px;
   justify-content: center;
 }
 
-/* 
-.videoBox{
-  padding: 100px;
-}
-
-
-.videoGrid {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 16px;
-}
-
-.videoGrid > * {
-  flex: 1 1 calc(33.333% - 16px);
+.videoItem {
+  flex: 1 1 calc(50% - 10px); /* Базовый размер для горизонтальных видео */
+  max-width: calc(50% - 10px);
   box-sizing: border-box;
-} */
+  border-radius: 15px; /* Закругленные углы */
+  overflow: hidden; /* Чтобы закругленные углы работали */
+}
+
+.landscape {
+  flex: 1 1 calc(50% - 10px); /* Горизонтальные видео занимают 50% ширины */
+  max-width: calc(50% - 10px);
+}
+
+.portrait {
+  flex: 1 1 calc(25% - 10px); /* Вертикальные видео занимают 25% ширины */
+  max-width: calc(25% - 10px);
+}

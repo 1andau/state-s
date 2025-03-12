@@ -3,12 +3,15 @@ import { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import styles from './VideoPlayer.module.css';
 
-const VideoPlayer = ({ videoUrl }) => {
+const VideoPlayer = ({ videoUrl, widthVideo }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const videoRef = useRef(null);
   const previewVideoRef = useRef(null); // Ссылка на элемент <video> для превью
   const hlsPreviewRef = useRef(null); // Ссылка на экземпляр Hls для превью
+
+
+console.log(widthVideo, 'widthVideo');
 
   const handleOpenModal = () => {
     setIsPlaying(true);
@@ -108,7 +111,7 @@ const VideoPlayer = ({ videoUrl }) => {
           setIsLoading(false);
         });
       } else {
-        console.error('HLS is not supported in this browser');
+        console.log('HLS is not supported in this browser');
         setIsLoading(false);
       }
     }
@@ -117,7 +120,7 @@ const VideoPlayer = ({ videoUrl }) => {
   return (
     <div className={styles.videoContainer}>
       <div className={styles.preview} onClick={handleOpenModal}>
-        <video 
+        <video
           ref={previewVideoRef}
           muted
           loop
@@ -127,21 +130,38 @@ const VideoPlayer = ({ videoUrl }) => {
         />
       </div>
       {isPlaying && (
-        <div className={styles.modal} onClick={handleCloseModal}>
-          <div className={styles.videoContent} onClick={e => e.stopPropagation()}>
+        <div className={styles.modalOverlay} onClick={handleCloseModal}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+            <button className={styles.closeButton} onClick={handleCloseModal}>
+              &times;
+            </button>
             <video
               ref={videoRef}
-              width="640"
-              height="360"
               controls
               autoPlay
-              className={styles.video}
+              className={styles.videoPlayer}
             >
               Your browser does not support the video tag.
             </video>
-            {isLoading && <p>Loading video...</p>}
-            <button onClick={handlePlayVideo}>Play</button>
-            <button onClick={handleCloseModal}>Close</button>
+            <div className={styles.descriptionContainer}>
+              <p className={styles.videoDescription}>
+                This is a sample video description. Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
+                Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, 
+                quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. 
+                Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. 
+                Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+                This is a sample video description. Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
+                Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, 
+                quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. 
+                Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. 
+                Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+                This is a sample video description. Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
+                Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, 
+                quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. 
+                Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. 
+                Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+              </p>
+            </div>
           </div>
         </div>
       )}

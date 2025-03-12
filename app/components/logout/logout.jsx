@@ -8,7 +8,7 @@ const Logout = () => {
         try {
           await signOut(auth);
         } catch (error) {
-          console.error("Error logging out:", error);
+          console.log("Error logging out:", error);
         }
       };
 
