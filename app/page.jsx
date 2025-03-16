@@ -36,8 +36,8 @@ export default function Home() {
 
 
   return (
-<div className={styles.mainPage}>
-<div className={styles.header} >
+<div className={styles.mainContainer}>
+<div className={styles.previewBanner} >
 <Image
           className={styles.mainBanner}
             aria-hidden
@@ -80,6 +80,10 @@ export default function Home() {
 <div className={styles.container}>
       <h1>Video Upload and Display</h1>
       <VideoUploader onUploadSuccess={handleUploadSuccess} />
+
+
+
+      
       <div className={styles.videoGrid}>
         {videos.map((video, index) => {
           const orientation = getVideoOrientation(video.input.width, video.input.height);

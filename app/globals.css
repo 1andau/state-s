@@ -5,7 +5,6 @@
   font-style: normal;
 }
 
-
 :root {
 
   --background: #ffffff;
@@ -29,6 +28,12 @@ h2{
   font-family: 'Druk Wide Bold', sans-serif;
 }
 
+span{
+  src: url('/state-s/public/fonts/DrukWideBold.ttf') format('truetype');
+  font-style: normal;
+  font-family: 'Druk Wide Bold', 'Montserrat';
+}
+
 p{
   font-family: 'Montserrat', sans-serif;
 
@@ -44,9 +49,15 @@ body {
 body {
   width: 70%;
   margin: 0 auto;
+  background-color: #ff00a6;
 
 }
 
+@media (max-width: 768px) {
+  body{
+    width: 90%;
+  }
+}
 * {
   box-sizing: border-box;
   padding: 0;
@@ -64,12 +75,3 @@ a {
   }
 }
 
-
-
-/* 
-
-
-.layout{
-  width: 90%;
-  margin: 0 auto;
-} */

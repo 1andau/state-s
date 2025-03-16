@@ -1,29 +1,122 @@
 
-.mainContainer{
-    box-sizing: border-box; /* Учитывание отступов и границ в ширине */
-  
-  }
+.headerWrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  z-index: 1000;
+}
 
 .header {
+  margin: 0 auto;
+  width: 70%;
     display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 10px 20px; /* Отступы по бокам */
-    background: linear-gradient(to right, #3D4CBF, #B1DCFD); /* Синий градиент */
-    width: 100%;
-    top: 0;
-    z-index: 1000;
-    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1); /* Тень для хедера */
-    margin-top: 15px; /* Отступ сверху */
-    border-radius: 50px;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 0;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  background-color: #000000;
+}
+
+.headerBox {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+}
+
+.logoContainer {
+  display: flex;
+  align-items: center;
+  gap: 10px; 
+}
+
+.logo {
+  font-size: 24px;
+  color: #ffffff;
+  font-weight: bold;
+}
+
+.statesLogo{
+  width: 176px;
+  height:30px;
+}
+
+
+.share {
+  color: #979797;
+  font-size: 20px;
+  font-weight: 400;
+  margin: 0; /* Убираем отступы у параграфа */
+}
+
+.rightSection {
+  display: flex;
+  align-items: center;
+  gap: 20px; /* Расстояние между элементами справа */
+}
+
+.shareButton {
+  background-color: #3370FF;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 25px;
+  font-size: 20px;
+  width: 250px;
+  cursor: pointer;
+}
+
+
+.loginButton {
+  background-color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Расстояние между иконкой и именем пользователя */
+  padding: 8px;
+  border-radius: 25px;
+
+}
+.userName {
+  color: #000000;
+  font-size: 19px;
+
+}
+.gradientStripes {
+  position: fixed;
+  top: 80px; /* Высота хэдера */
+  width: 100%;
+  z-index: 999;
+}
+
+.gradientStripe {
+  height: 15px;
+  margin: 0 auto;
+  width: 70%;
+}
+
+/* Адаптивность для мобильных устройств */
+
+
+@media (max-width: 768px) {
+  .header {
+    padding: 10px;
   }
-  
-  .logo {
-    font-size: 24px;
-    color: #ffffff; /* Цвет логотипа */
-    font-weight: bold;
+
+  .shareButton {
+    padding: 6px 12px;
+    font-size: 12px;
   }
-  
+
+  .share{
+    display: none;
+  }
+}
+
   .placeholder {
     flex-grow: 1;
   }
@@ -34,3 +127,5 @@
     font-weight: bold;
     
   }
+
+
