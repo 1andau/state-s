@@ -1,228 +1,226 @@
 
+import { Geist, Geist_Mono } from "next/font/google";
+import "./globals.css";
+import Header from "./components/header/header";
 
-"use client";
-import Image from "next/image";
-import styles from "./page.module.css";
-import { useEffect, useState } from "react";
-import VideoUploader from "./components/videoUpload/videoUploader";
-import VideoPlayer from "./components/videoUpload/VideoPlayer";
-import { fetchVideos } from "./components/utls/showPreview";
-
-
-export default function Home() {
-  const [videos, setVideos] = useState([]);
-
-
-  useEffect(() => {
-    const loadVideos = async () => {
-      const videosData = await fetchVideos();
-      console.log(videosData, 'this is video data');
-      
-      setVideos(videosData);
-    };
-
-    loadVideos();
-  }, []);
-
-  const handleUploadSuccess = (videoData) => {
-    if (videoData.playback && (videoData.playback.hls || videoData.playback.dash)) {
-      setVideos([...videos, videoData]);
-    } else {
-      console.log('Invalid video data:', videoData);
-    }
-  };
-
-  const getVideoOrientation = (width, height) => {
-    return width > height ? 'landscape' : 'portrait';
-  };
-
-
+export default function RootLayout({ children }) {
   return (
-<div className={styles.mainPage}>
-<div className={styles.previewBanner} >
-<Image
-          className={styles.mainBanner}
-            aria-hidden
-            src="/arch.jpeg"
-            alt="home icon"
-            width={800}
-            height={400}
-          />
-
-<p className={styles.date}>03.07.2025</p>
-
-
-
-    </div>
-
-<div className={styles.artistContainer}>
-<div className={styles.artistText}>
-<h2 className={styles.albumTitle}>Playboi Carti</h2>
-<p className={styles.reactionsCount}>
-  <span className={styles.countSpan}>1137 </span>
-   reactions</p>
-</div>
-
-<div className={styles.imageContainer}>
-      <Image
-          className={styles.avatar}
-            aria-hidden
-            src="/carti.svg"
-            alt="home icon"
-            width={100}
-            height={100}
-          />
-    </div>
-</div>
-
-<h2 className={styles.secondTitle}>Reactions to the album</h2>
-
-
-
-<div className={styles.container}>
-      <h1>Video Upload and Display</h1>
-      <VideoUploader onUploadSuccess={handleUploadSuccess} />
-
-
-
-      
-      <div className={styles.videoGrid}>
-        {videos.map((video, index) => {
-          const orientation = getVideoOrientation(video.input.width, video.input.height);
-
-          return (
-            <div
-              key={video.uid}
-              className={`${styles.videoItem} ${
-                orientation === 'landscape' ? styles.landscape : styles.portrait
-              }`}
-            >
-              <VideoPlayer
-                videoUrl={video.playback.hls}
-                thumbnailUrl={video.thumbnail}
-                widthVideo={video.input.width}
-                heightVideo={video.input.height}
-              />
-            </div>
-          );
-        })}
-      </div>
-    </div>
-
-
-</div>
-
-
-
+    <html lang="en">
+      <body>
+        <Header />
+        <div className="content">
+          {children}
+        </div>
+      </body>
+    </html>
   );
 }
 
+//"./globals.css";
 
-
-
-
-
-
-
-.mainContainer{
-  width: 70%;
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
 }
-
-.previewBanner {
-  text-align: center;
-  position: relative;
-  padding: 20px;
-  color: #fff;
-  width: 100%;
-
-}
-.mainBanner{
-  width: 100%;
-
-}
-.title {
-  font-size: 3rem;
+body {
   margin: 0;
+  padding: 0;
+  background-color: #ff00a6;
+  overflow-x: hidden;
 }
 
-.date {
-  font-size: 1.2rem;
-  color: rgb(255, 0, 0);
-  position: absolute;
-  bottom: 48px;
-  right: 140px;
+.content {
+  width: 70%;
+  margin: 0 auto;
+  padding-top: 100px; /* Высота хедера */
 }
 
-.artistContainer{
+
+import styles from './Header.module.css';
+import Image from "next/image";
+import Link from 'next/link'
+
+
+
+const Header = () => {
+  return (
+    <div className={styles.headerWrapper}>
+  <header className={styles.header}>
+      <div className={styles.headerBox}>
+        {/* Логотип и текст */}
+        <div className={styles.logoContainer}>
+          <div className={styles.logo}>
+            <Link href='/'>
+              <Image
+                aria-hidden
+                className={styles.statesLogo}
+                src="/logo.svg"
+                alt="home"
+                width={120}
+                height={25}
+              />
+            </Link>
+          </div>
+          <p className={styles.share}>shar!e together...</p>
+        </div>
+
+        {/* Элементы справа */}
+        <div className={styles.rightSection}>
+        <button className={styles.loginButton}>
+{/* {userName && <span className={styles.userName}>{userName}</span>} */}
+<span className={styles.userName}>sarah dsdsd</span>
+        <Image
+            aria-hidden
+            className={styles.loginLogo}
+            src="/login.svg"
+            alt="login"
+            width={40}
+            height={25}
+          />
+
+</button>
+  
+          <button className={styles.shareButton}>+ share your reaction</button>
+        </div>
+      </div>
+
+
+    </header>
+    <div className={styles.gradientStripes}>
+        <div className={styles.gradientStripe} style={{ backgroundColor: 'rgba(0, 0, 0, 0.9)' }}></div>
+        <div className={styles.gradientStripe} style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}></div>
+        <div className={styles.gradientStripe} style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}></div>
+      </div>
+  
+    </div>
+  );
+};
+
+export default Header;
+
+
+
+.headerWrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.header {
+  margin: 0 auto;
+  width: 70%;
+    display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 0;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  background-color: #000000;
+}
+
+.headerBox {
   display: flex;
   justify-content: space-between;
   align-items: center;
   width: 100%;
 }
 
-.album {
-  text-align: center;
-  padding: 20px;
-  background-color: #111;
-  color: #fff;
-}
-
-
-.albumTitle {
-  font-size: 60px;
-  margin: 0;
-  color: #FF0000;
-}
-
-.reactionsCount {
-  font-size: 1rem;
-  color: #aaa;
-}
-
-.countSpan{
-  font-weight: bold;
-  color: white;
-}
-
-.avatar{
-  float:left; 
-}
-
-
-.secondTitle{
-  
-padding: 30px 0 30px 0;
-}
-
-
-
-
-.container {
-  padding: 20px;
-  text-align: center;
-}
-
-.videoGrid {
+.logoContainer {
   display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-  justify-content: center;
+  align-items: center;
+  gap: 10px; 
 }
 
-.videoItem {
-  flex: 1 1 calc(50% - 10px); /* Базовый размер для горизонтальных видео */
-  max-width: calc(50% - 10px);
-  box-sizing: border-box;
-  border-radius: 15px; /* Закругленные углы */
-  overflow: hidden; /* Чтобы закругленные углы работали */
+.logo {
+  font-size: 24px;
+  color: #ffffff;
+  font-weight: bold;
 }
 
-.landscape {
-  flex: 1 1 calc(50% - 10px); /* Горизонтальные видео занимают 50% ширины */
-  max-width: calc(50% - 10px);
+.statesLogo{
+  width: 176px;
+  height:30px;
 }
 
-.portrait {
-  flex: 1 1 calc(25% - 10px); /* Вертикальные видео занимают 25% ширины */
-  max-width: calc(25% - 10px);
+
+.share {
+  color: #979797;
+  font-size: 20px;
+  font-weight: 400;
+  margin: 0; /* Убираем отступы у параграфа */
 }
+
+.rightSection {
+  display: flex;
+  align-items: center;
+  gap: 20px; /* Расстояние между элементами справа */
+}
+
+.shareButton {
+  background-color: #3370FF;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 25px;
+  font-size: 20px;
+  width: 250px;
+  cursor: pointer;
+}
+
+
+.loginButton {
+  background-color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px; /* Расстояние между иконкой и именем пользователя */
+  padding: 8px;
+  border-radius: 25px;
+
+}
+.userName {
+  color: #000000;
+  font-size: 19px;
+
+}
+.gradientStripes {
+  position: fixed;
+  top: 80px; /* Высота хэдера */
+  width: 100%;
+  z-index: 999;
+}
+
+.gradientStripe {
+  height: 15px;
+  margin: 0 auto;
+  width: 70%;
+}
+
+/* Адаптивность для мобильных устройств */
+@media (max-width: 768px) {
+  .header {
+    width: 100%;
+    padding: 10px;
+  }
+
+  .shareButton {
+    padding: 6px 6px;
+    font-size: 6px;
+  }
+
+  .share {
+    display: none;
+  }
+
+  .gradientStripes {
+    width: 100%;
+  }
+}
+
+
+

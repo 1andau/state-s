@@ -30,7 +30,7 @@ const Header = () => {
         <div className={styles.rightSection}>
         <button className={styles.loginButton}>
 {/* {userName && <span className={styles.userName}>{userName}</span>} */}
-<span className={styles.userName}>sarah dsdsd</span>
+<span className={styles.userName}>sarah </span>
         <Image
             aria-hidden
             className={styles.loginLogo}

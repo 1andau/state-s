@@ -93,7 +93,7 @@ padding: 30px 0 30px 0;
   border-radius: 15px; /* Закругленные углы */
   overflow: hidden; /* Чтобы закругленные углы работали */
   height: 250px; 
-
+width: 100%;
 }
 
 .landscape {
