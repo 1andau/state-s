@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
-import styles from './VideoPlayer.module.css';
+import styles from './videoPlayer.module.css';
 
 const VideoPlayer = ({ videoUrl, widthVideo }) => {
   const [isPlaying, setIsPlaying] = useState(false);
