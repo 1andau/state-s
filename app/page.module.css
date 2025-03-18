@@ -105,3 +105,28 @@ width: 100%;
   flex: 1 1 calc(25% - 10px); /* Вертикальные видео занимают 25% ширины */
   max-width: calc(25% - 10px);
 }
+
+
+/* LOADER */
+
+.loaderContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 200px; /* Высота контейнера для лоадера */
+}
+
+.loader {
+  border: 4px solid #f3f3f3; /* Светлый цвет */
+  border-top: 4px solid #3498db; /* Синий цвет */
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite; /* Анимация вращения */
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}

@@ -1,226 +1,163 @@
+const VideoUploader = ({ onUploadSuccess }) => {
+  const [file, setFile] = useState(null);
 
-import { Geist, Geist_Mono } from "next/font/google";
-import "./globals.css";
-import Header from "./components/header/header";
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+  };
 
-export default function RootLayout({ children }) {
+  const handleUpload = async () => {
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+      const response = await axios.post(
+        `https://api.cloudflare.com/client/v4/accounts/${process.env.NEXT_PUBLIC_CLOUDFLARE_ACCOUNT_ID}/stream`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+            Authorization: `Bearer ${process.env.NEXT_PUBLIC_CLOUDFLARE_API_TOKEN}`,
+          },
+        }
+      );
+      onUploadSuccess(response.data);
+    } catch (error) {
+      console.log('Error uploading video:', error);
+    }
+  };
+
+
   return (
-    <html lang="en">
-      <body>
-        <Header />
-        <div className="content">
-          {children}
-        </div>
-      </body>
-    </html>
-  );
-}
-
-//"./globals.css";
-
-html,
-body {
-  max-width: 100vw;
-  overflow-x: hidden;
-}
-body {
-  margin: 0;
-  padding: 0;
-  background-color: #ff00a6;
-  overflow-x: hidden;
-}
-
-.content {
-  width: 70%;
-  margin: 0 auto;
-  padding-top: 100px; /* Высота хедера */
-}
-
-
-import styles from './Header.module.css';
-import Image from "next/image";
-import Link from 'next/link'
-
-
-
-const Header = () => {
-  return (
-    <div className={styles.headerWrapper}>
-  <header className={styles.header}>
-      <div className={styles.headerBox}>
-        {/* Логотип и текст */}
-        <div className={styles.logoContainer}>
-          <div className={styles.logo}>
-            <Link href='/'>
-              <Image
-                aria-hidden
-                className={styles.statesLogo}
-                src="/logo.svg"
-                alt="home"
-                width={120}
-                height={25}
-              />
-            </Link>
-          </div>
-          <p className={styles.share}>shar!e together...</p>
-        </div>
-
-        {/* Элементы справа */}
-        <div className={styles.rightSection}>
-        <button className={styles.loginButton}>
-{/* {userName && <span className={styles.userName}>{userName}</span>} */}
-<span className={styles.userName}>sarah dsdsd</span>
-        <Image
-            aria-hidden
-            className={styles.loginLogo}
-            src="/login.svg"
-            alt="login"
-            width={40}
-            height={25}
-          />
-
-</button>
-  
-          <button className={styles.shareButton}>+ share your reaction</button>
-        </div>
-      </div>
-
-
-    </header>
-    <div className={styles.gradientStripes}>
-        <div className={styles.gradientStripe} style={{ backgroundColor: 'rgba(0, 0, 0, 0.9)' }}></div>
-        <div className={styles.gradientStripe} style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}></div>
-        <div className={styles.gradientStripe} style={{ backgroundColor: 'rgba(0, 0, 0, 0.3)' }}></div>
-      </div>
-  
-    </div>
+    <div>
+    <input type="file" accept="video/*" onChange={handleFileChange} />
+    <button onClick={handleUpload}>Upload Video</button>
+  </div>
   );
 };
 
-export default Header;
+export default VideoUploader;
 
 
 
-.headerWrapper {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  display: flex;
-  justify-content: center;
-  z-index: 1000;
+"use client";
+import Image from "next/image";
+import styles from "./page.module.css";
+import { useEffect, useState } from "react";
+import VideoUploader from "./components/videoUpload/videoUploader";
+import VideoPlayer from "./components/videoUpload/VideoPlayer";
+import { fetchVideos } from "./components/utls/showPreview";
+import { ToastContainer, toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import { showToast } from "./components/toasts/toasts";
+
+export default function Home() {
+  const [videos, setVideos] = useState([]);
+  const [loading, setLoading] = useState(true); // Состояние загрузки
+
+  useEffect(() => {
+    const loadVideos = async () => {
+      try {
+        const videosData = await fetchVideos();
+        console.log(videosData, 'this is video data');
+        setVideos(videosData);
+        showToast("Videos loaded successfully!", "success") ; //успешно 
+      } catch (error) {
+        showToast("Failed to load videos.", "error");
+      } finally {
+        setLoading(false); // Загрузка завершена
+      }
+    };
+
+    loadVideos();
+  }, []);
+
+  const handleUploadSuccess = (videoData) => {
+    if (videoData.playback && (videoData.playback.hls || videoData.playback.dash)) {
+      setVideos([...videos, videoData]);
+      showToast("Videos loaded successfully!", "success") ; //успешно 
+    } else {
+      showToast("Failed to load videos.", "error");
+    }
+  };
+
+  const getVideoOrientation = (width, height) => {
+    return width > height ? 'landscape' : 'portrait';
+  };
+
+  return (
+    <div className={styles.mainContainer}>
+      <ToastContainer /> {/* Контейнер для toast-уведомлений */}
+
+      <div className={styles.previewBanner}>
+        <Image
+          className={styles.mainBanner}
+          aria-hidden
+          src="/banner.svg"
+          alt="home icon"
+          width={800}
+          height={400}
+        />
+        <p className={styles.date}>03.07.2025</p>
+      </div>
+
+      <div className={styles.artistContainer}>
+        <div className={styles.artistText}>
+          <h2 className={styles.albumTitle}>Playboi Carti</h2>
+          <p className={styles.reactionsCount}>
+            <span className={styles.countSpan}>1137 </span>
+            reactions
+          </p>
+        </div>
+
+        <div className={styles.imageContainer}>
+          <Image
+            className={styles.avatar}
+            aria-hidden
+            src="/carti.svg"
+            alt="home icon"
+            width={100}
+            height={100}
+          />
+        </div>
+      </div>
+
+      <h2 className={styles.secondTitle}>Reactions to the album</h2>
+
+      <div className={styles.container}>
+        <h1>Video Upload and Display</h1>
+        <VideoUploader onUploadSuccess={handleUploadSuccess} />
+
+        {loading ? ( // Отображение лоадера, если идет загрузка
+          <div className={styles.loaderContainer}>
+            <div className={styles.loader}></div>
+            <p>Loading videos...</p>
+          </div>
+        ) : (
+          <div className={styles.videoGrid}>
+            {videos.map((video, index) => {
+              const orientation = getVideoOrientation(video.input.width, video.input.height);
+
+              return (
+                <div
+                  key={video.uid}
+                  className={`${styles.videoItem} ${
+                    orientation === 'landscape' ? styles.landscape : styles.portrait
+                  }`}
+                >
+                  <VideoPlayer
+                    videoUrl={video.playback.hls}
+                    thumbnailUrl={video.thumbnail}
+                    widthVideo={video.input.width}
+                    heightVideo={video.input.height}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
-
-.header {
-  margin: 0 auto;
-  width: 70%;
-    display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 20px 0;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  background-color: #000000;
-}
-
-.headerBox {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  width: 100%;
-}
-
-.logoContainer {
-  display: flex;
-  align-items: center;
-  gap: 10px; 
-}
-
-.logo {
-  font-size: 24px;
-  color: #ffffff;
-  font-weight: bold;
-}
-
-.statesLogo{
-  width: 176px;
-  height:30px;
-}
-
-
-.share {
-  color: #979797;
-  font-size: 20px;
-  font-weight: 400;
-  margin: 0; /* Убираем отступы у параграфа */
-}
-
-.rightSection {
-  display: flex;
-  align-items: center;
-  gap: 20px; /* Расстояние между элементами справа */
-}
-
-.shareButton {
-  background-color: #3370FF;
-  color: white;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 25px;
-  font-size: 20px;
-  width: 250px;
-  cursor: pointer;
-}
-
-
-.loginButton {
-  background-color: white;
-  border: none;
-  cursor: pointer;
-  display: flex;
-  align-items: center;
-  gap: 8px; /* Расстояние между иконкой и именем пользователя */
-  padding: 8px;
-  border-radius: 25px;
-
-}
-.userName {
-  color: #000000;
-  font-size: 19px;
-
-}
-.gradientStripes {
-  position: fixed;
-  top: 80px; /* Высота хэдера */
-  width: 100%;
-  z-index: 999;
-}
-
-.gradientStripe {
-  height: 15px;
-  margin: 0 auto;
-  width: 70%;
-}
-
-/* Адаптивность для мобильных устройств */
-@media (max-width: 768px) {
-  .header {
-    width: 100%;
-    padding: 10px;
-  }
-
-  .shareButton {
-    padding: 6px 6px;
-    font-size: 6px;
-  }
-
-  .share {
-    display: none;
-  }
-
-  .gradientStripes {
-    width: 100%;
-  }
-}
-
-
-

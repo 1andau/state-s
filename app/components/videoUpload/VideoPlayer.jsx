@@ -10,8 +10,14 @@ const VideoPlayer = ({ videoUrl, widthVideo }) => {
   const previewVideoRef = useRef(null); // Ссылка на элемент <video> для превью
   const hlsPreviewRef = useRef(null); // Ссылка на экземпляр Hls для превью
 
+  const hls = new Hls({
+    maxBufferLength: 30, // Увеличиваем размер буфера
+    maxMaxBufferLength: 60, // Максимальный размер буфера
+    enableWorker: true, // Используем Web Worker для улучшения производительности
+  });
 
-console.log(widthVideo, 'widthVideo');
+
+// console.log(widthVideo, 'widthVideo');
 
   const handleOpenModal = () => {
     setIsPlaying(true);
@@ -30,10 +36,30 @@ console.log(widthVideo, 'widthVideo');
   const handlePlayVideo = () => {
     if (videoRef.current) {
       videoRef.current.play().catch(error => {
-        console.error('Error attempting to play', error);
+        console.log('Error attempting to play', error);
       });
     }
   };
+
+
+  hls.on(Hls.Events.ERROR, (event, data) => {
+    console.log('HLS error:', data);
+    if (data.fatal) {
+      switch (data.type) {
+        case Hls.ErrorTypes.NETWORK_ERROR:
+          console.log('Fatal network error encountered, try to recover');
+          hls.startLoad();
+          break;
+        case Hls.ErrorTypes.MEDIA_ERROR:
+          console.log('Fatal media error encountered, try to recover');
+          hls.recoverMediaError();
+          break;
+        default:
+          hls.destroy();
+          break;
+      }
+    }
+  });
 
   // для превью
   useEffect(() => {
@@ -51,7 +77,7 @@ console.log(widthVideo, 'widthVideo');
           previewVideo.play();
         });
         hls.on(Hls.Events.ERROR, (event, data) => {
-          console.error('HLS error:', data);
+          console.log('HLS error:', data);
         });
       } else if (previewVideo.canPlayType('application/vnd.apple.mpegurl')) {
         // Для браузеров, которые поддерживают HLS нативно (типа Safari)
@@ -59,8 +85,12 @@ console.log(widthVideo, 'widthVideo');
         previewVideo.currentTime = 0; // Начинаем с 0 секунд
         previewVideo.play();
       } else {
-        console.error('HLS is not supported in this browser');
+        console.log('HLS is not supported in this browser');
       }
+
+
+
+
 
       // Обработчик для остановки видео после 3 секунд
       const handleTimeUpdate = () => {
@@ -83,13 +113,17 @@ console.log(widthVideo, 'widthVideo');
     }
   }, [videoUrl]);
 
-  // Эффект для основного видео
+
   useEffect(() => {
     if (isPlaying && videoRef.current) {
       const video = videoRef.current;
-
+  
       if (Hls.isSupported()) {
-        const hls = new Hls();
+        const hls = new Hls({
+          maxBufferLength: 30,
+          maxMaxBufferLength: 60,
+          enableWorker: true,
+        });
         hls.loadSource(videoUrl);
         hls.attachMedia(video);
         hls.on(Hls.Events.MANIFEST_PARSED, () => {
@@ -97,7 +131,22 @@ console.log(widthVideo, 'widthVideo');
           handlePlayVideo();
         });
         hls.on(Hls.Events.ERROR, (event, data) => {
-          console.error('HLS error:', data);
+          console.log('HLS error:', data);
+          if (data.fatal) {
+            switch (data.type) {
+              case Hls.ErrorTypes.NETWORK_ERROR:
+                console.log('Fatal network error encountered, try to recover');
+                hls.startLoad();
+                break;
+              case Hls.ErrorTypes.MEDIA_ERROR:
+                console.log('Fatal media error encountered, try to recover');
+                hls.recoverMediaError();
+                break;
+              default:
+                hls.destroy();
+                break;
+            }
+          }
           setIsLoading(false);
         });
       } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
@@ -107,7 +156,7 @@ console.log(widthVideo, 'widthVideo');
           handlePlayVideo();
         });
         video.addEventListener('error', () => {
-          console.error('Failed to load video');
+          console.log('Failed to load video');
           setIsLoading(false);
         });
       } else {
@@ -116,6 +165,39 @@ console.log(widthVideo, 'widthVideo');
       }
     }
   }, [isPlaying, videoUrl]);
+  // // Эффект для основного видео
+  // useEffect(() => {
+  //   if (isPlaying && videoRef.current) {
+  //     const video = videoRef.current;
+
+  //     if (Hls.isSupported()) {
+  //       const hls = new Hls();
+  //       hls.loadSource(videoUrl);
+  //       hls.attachMedia(video);
+  //       hls.on(Hls.Events.MANIFEST_PARSED, () => {
+  //         setIsLoading(false);
+  //         handlePlayVideo();
+  //       });
+  //       hls.on(Hls.Events.ERROR, (event, data) => {
+  //         console.log('HLS error:', data);
+  //         setIsLoading(false);
+  //       });
+  //     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+  //       video.src = videoUrl;
+  //       video.addEventListener('loadeddata', () => {
+  //         setIsLoading(false);
+  //         handlePlayVideo();
+  //       });
+  //       video.addEventListener('error', () => {
+  //         console.log('Failed to load video');
+  //         setIsLoading(false);
+  //       });
+  //     } else {
+  //       console.log('HLS is not supported in this browser');
+  //       setIsLoading(false);
+  //     }
+  //   }
+  // }, [isPlaying, videoUrl]);
 
   return (
     <div className={styles.videoContainer}>
