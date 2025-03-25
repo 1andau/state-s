@@ -226,6 +226,7 @@ const VideoPlayer = ({ videoUrl, widthVideo }) => {
               Your browser does not support the video tag.
             </video>
             <div className={styles.descriptionContainer}>
+              <span className={styles.nickname}>ASSET HOLD</span>
               <p className={styles.videoDescription}>
                 This is a sample video description. Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
                 Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, 

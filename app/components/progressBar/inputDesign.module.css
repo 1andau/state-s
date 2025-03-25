@@ -1,0 +1,166 @@
+
+
+.containerProgress {
+    /* min-height: 100vh; */
+    background-color: #000;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .uploadSection {
+    background-color: #131314;
+    border-radius: 44px;
+    padding: 36px;
+    width: 545px;
+    height: 100%;
+  }
+  
+  .header {
+    margin-bottom: 24px;
+  }
+  
+  .title {
+    color: #fff;
+    font-family: 'Montserrat', sans-serif !important;
+    font-size: 36px;
+    font-weight: 700;
+    margin: 0;
+  }
+  
+  .subtitle {
+    color: #414141;
+    font-family: 'Montserrat', sans-serif !important;
+    font-size: 20px;
+    font-weight: 500;
+    margin: 0;
+  }
+  
+  .previewContainer {
+    background-color: #1a1a1b;
+    border-radius: 12px;
+    width: 100%;
+    height: 255px;
+margin-bottom: 24px;
+  }
+  
+  .preview {
+    color: #666;
+    font-size: 24px;
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  
+  .progressContainer {
+    margin-bottom: 24px;
+  }
+  
+  .progressBar {
+    background-color: #1a1a1b;
+    border-radius: 8px;
+    width: 100%;
+    height: 12px;
+  }
+  
+  .progressFill {
+    background-color: #3b82f6;
+    border-radius: 9999px;
+    height: 100%;
+    transition: width 0.3s ease;
+  }
+  
+  .controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .logoContainer {
+    display: flex;
+    align-items: center;
+  }
+  
+  .uploadButton {
+    color: #fff;
+    width: 200px;
+    background-color: #3b82f6;
+    border-radius: 20px;
+    padding: 12px 24px;
+    font-family: 'Montserrat', sans-serif !important;
+    font-size: 20px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  .uploadButton:hover {
+    background-color: #2563eb;
+  }
+  
+  .uploading{
+    font-size: 18px;
+    
+  }
+
+
+.previewVideo {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    border-radius: 12px;
+  }
+  
+  .hiddenInput {
+    display: none;
+  }
+  
+  .fileInputLabel {
+    color: #fff;
+    background-color: #3b82f6;
+    border-radius: 20px;
+    padding: 12px 24px;
+    font-family: 'Montserrat', sans-serif;
+    font-size: 18px;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+    margin-right: 16px;
+  }
+  
+  .fileInputLabel:hover {
+    background-color: #2563eb;
+  }
+  
+  .uploadActions {
+    display: flex;
+    align-items: center;
+  }
+
+  @media (max-width: 991px) {
+    .uploadSection {
+      width: 90%;
+      height: auto;
+      padding: 24px;
+    }
+  
+    .previewContainer {
+      height: 200px;
+    }
+  }
+  
+  @media (max-width: 640px) {
+    .uploadSection {
+      width: 95%;
+      padding: 16px;
+    }
+  
+    .previewContainer {
+      height: 180px;
+    }
+  }
+  

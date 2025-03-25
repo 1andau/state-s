@@ -1,10 +1,24 @@
+'use client'
 import styles from './Header.module.css';
 import Image from "next/image";
 import Link from 'next/link'
+import { useState } from 'react';
+import ProgressBar from '../progressBar/progressBar';
 
 const Header = () => {
+  const [showModal, setShowModal] = useState(false)
+
+  const handleShareClick = () => {
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+  };
+
   return (
-    <div className={styles.headerWrapper}>
+<>
+<div className={styles.headerWrapper}>
   <header className={styles.header}>
       <div className={styles.headerBox}>
         {/* Логотип и текст */}
@@ -28,7 +42,7 @@ const Header = () => {
         <div className={styles.rightSection}>
         <button className={styles.loginButton}>
 {/* {userName && <span className={styles.userName}>{userName}</span>} */}
-<span className={styles.userName}>sarah </span>
+<span className={styles.userName}>Sarah </span>
         <Image
             aria-hidden
             className={styles.loginLogo}
@@ -40,7 +54,9 @@ const Header = () => {
 
 </button>
   
-          <button className={styles.shareButton}>+ share your reaction</button>
+          <button 
+          onClick={handleShareClick}
+          className={styles.shareButton}>+ share your reaction</button>
         </div>
       </div>
 
@@ -71,6 +87,25 @@ const Header = () => {
       </div>
   
     </div>
+    {showModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modalContent}>
+            <button 
+              className={styles.closeButton}
+              onClick={handleCloseModal}
+            >
+     X
+            </button>
+            <ProgressBar 
+              onUploadSuccess={(data) => {
+                console.log('Upload successful:', data);
+                handleCloseModal();
+              }}
+            />
+          </div>
+        </div>
+      )}
+</>
   );
 };
 

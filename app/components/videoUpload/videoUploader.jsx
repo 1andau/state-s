@@ -1,10 +1,13 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import styles from "./upload.module.css"
+
 
 const VideoUploader = ({ onUploadSuccess }) => {
   const [file, setFile] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
 
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
@@ -32,7 +35,9 @@ const VideoUploader = ({ onUploadSuccess }) => {
           },
         }
       );
-  
+       //URL для предпросмотра
+       setPreviewUrl(response.data.result.url);
+       
       // Вызываем onUploadSuccess с данными о видео
       onUploadSuccess(response.data.result); // Убедитесь, что response.data.result содержит нужные данные
     } catch (error) {
@@ -43,26 +48,33 @@ const VideoUploader = ({ onUploadSuccess }) => {
   };
 
   return (
-    <div>
-      <input type="file" accept="video/*" onChange={handleFileChange} />
-      <button onClick={handleUpload} disabled={isUploading}>
-        {isUploading ? 'Uploading...' : 'Upload Video'}
-      </button>
-      {isUploading && (
-        <div style={{ width: '100%', backgroundColor: '#ddd', marginTop: '10px' }}>
-          <div
-            style={{
-              width: `${uploadProgress}%`,
-              height: '20px',
-              backgroundColor: 'gray',
-            }}
-          ></div>
-        </div>
-      )}
-      {uploadProgress === 100 && (
-        <button onClick={() => onUploadSuccess(file)}>Continue</button>
-      )}
-    </div>
+    <div className={styles.uploadContainer}>
+    <input
+      type="file"
+      accept="video/*"
+      onChange={handleFileChange}
+      className={styles.fileInput}
+    />
+    <button className={styles.uploadButton} onClick={handleUpload} disabled={isUploading}>
+      {isUploading ? 'Uploading...' : 'Upload Video'}
+    </button>
+    {isUploading && (
+      <div className={styles.progressBarContainer}>
+        <div
+          className={styles.progressBar}
+          style={{ width: `${uploadProgress}%` }}
+        ></div>
+      </div>
+    )}
+    {previewUrl && (
+      <div className={styles.previewContainer}>
+        <video controls>
+          <source src={previewUrl} type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+      </div>
+    )}
+  </div>
   );
 };
 

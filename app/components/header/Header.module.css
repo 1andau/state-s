@@ -120,7 +120,58 @@
 
 
 
+/* Модальное окно */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.7);
+  backdrop-filter: blur(5px);
+  z-index: 2000;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
 
+.modalContent {
+  position: relative;
+  background-color: #131314;
+  border-radius: 44px;
+  padding: 36px;
+  width: 545px;
+  max-width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  z-index: 2001;
+}
+
+.closeButton {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  z-index: 2002;
+}
+
+/* Адаптивность модального окна */
+@media (max-width: 768px) {
+  .modalContent {
+    padding: 24px;
+    width: 90%;
+  }
+}
+
+@media (max-width: 480px) {
+  .modalContent {
+    padding: 16px;
+    width: 95%;
+  }
+}
 
 
 

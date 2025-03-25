@@ -8,6 +8,7 @@ import { fetchVideos } from "./components/utls/showPreview";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { showToast } from "./components/toasts/toasts";
+import ProgressBar from "./components/progressBar/progressBar";
 
 export default function Home() {
   const [videos, setVideos] = useState([]);
@@ -23,7 +24,7 @@ export default function Home() {
         const videosData = await fetchVideos();
         console.log(videosData, 'this is video data');
         setVideos(videosData);
-        showToast("Videos loaded successfully!", "success") ; //успешно 
+        // showToast("Videos loaded successfully!", "success") ; //успешно 
       } catch (error) {
         showToast("Failed to load videos.", "error");
       } finally {
@@ -52,7 +53,7 @@ export default function Home() {
     }
   };
 
-  
+
   const getVideoOrientation = (width, height) => {
     return width > height ? 'landscape' : 'portrait';
   };
@@ -95,10 +96,11 @@ export default function Home() {
       </div>
 
       <h2 className={styles.secondTitle}>Reactions to the album</h2>
+      {/* <ProgressBar /> */}
 
       <div className={styles.container}>
         <h1>Video Upload and Display</h1>
-        <VideoUploader onUploadSuccess={handleUploadSuccess} />
+        {/* <VideoUploader onUploadSuccess={handleUploadSuccess} /> */}
 
         {loading ? ( // Отображение лоадера, если идет загрузка
           <div className={styles.loaderContainer}>
