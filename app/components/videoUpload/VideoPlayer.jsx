@@ -3,214 +3,127 @@ import { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import styles from './videoPlayer.module.css';
 
-const VideoPlayer = ({ videoUrl, widthVideo }) => {
+const VideoPlayer = ({ videoUrl, isProcessing }) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const videoRef = useRef(null);
-  const previewVideoRef = useRef(null); // Ссылка на элемент <video> для превью
-  const hlsPreviewRef = useRef(null); // Ссылка на экземпляр Hls для превью
+  const previewRef = useRef(null);
+  const [showPreview, setShowPreview] = useState(true);
+  const [previewReady, setPreviewReady] = useState(false);
 
-  const hls = new Hls({
-    maxBufferLength: 30, // Увеличиваем размер буфера
-    maxMaxBufferLength: 60, // Максимальный размер буфера
-    enableWorker: true, // Используем Web Worker для улучшения производительности
-  });
+  // Превью видео (3 секунды)
+  useEffect(() => {
+    if (!showPreview || !previewRef.current) return;
 
+    const video = previewRef.current;
+    let hls;
+    let timeout;
 
-// console.log(widthVideo, 'widthVideo');
+    const playPreview = () => {
+      video.currentTime = 0;
+      video.play()
+        .then(() => {
+          setPreviewReady(true);
+          timeout = setTimeout(() => {
+            video.pause();
+            video.currentTime = 0;
+          }, 3000);
+        })
+        .catch(e => {
+          console.log('Preview play error:', e);
+          setPreviewReady(false);
+        });
+    };
+
+    const initPreview = () => {
+      if (Hls.isSupported()) {
+        hls = new Hls();
+        hls.loadSource(videoUrl);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, playPreview);
+        hls.on(Hls.Events.ERROR, () => setPreviewReady(false));
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = videoUrl;
+        video.addEventListener('loadedmetadata', playPreview);
+        video.addEventListener('error', () => setPreviewReady(false));
+      }
+    };
+
+    // Если видео не в обработке - сразу инициализируем превью
+    if (!isProcessing) {
+      initPreview();
+    }
+
+    return () => {
+      clearTimeout(timeout);
+      if (hls) hls.destroy();
+      video.pause();
+      video.currentTime = 0;
+    };
+  }, [videoUrl, showPreview, isProcessing]);
+
+  
+  // Основной плеер
+  useEffect(() => {
+    if (!isPlaying || !videoRef.current) return;
+
+    const video = videoRef.current;
+    let hls;
+
+    const setupPlayer = () => {
+      if (Hls.isSupported()) {
+        hls = new Hls();
+        hls.loadSource(videoUrl);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = videoUrl;
+        video.addEventListener('loadedmetadata', () => video.play());
+      }
+    };
+
+    setupPlayer();
+
+    return () => {
+      if (hls) hls.destroy();
+      video.pause();
+      video.currentTime = 0;
+    };
+  }, [isPlaying, videoUrl]);
 
   const handleOpenModal = () => {
     setIsPlaying(true);
-    setIsLoading(true);
+    setShowPreview(false);
   };
 
   const handleCloseModal = () => {
-    if (videoRef.current) {
-      videoRef.current.pause();
-      videoRef.current.currentTime = 0;
-    }
     setIsPlaying(false);
-    setIsLoading(false);
+    setShowPreview(true);
   };
-
-  const handlePlayVideo = () => {
-    if (videoRef.current) {
-      videoRef.current.play().catch(error => {
-        console.log('Error attempting to play', error);
-      });
-    }
-  };
-
-
-  hls.on(Hls.Events.ERROR, (event, data) => {
-    console.log('HLS error:', data);
-    if (data.fatal) {
-      switch (data.type) {
-        case Hls.ErrorTypes.NETWORK_ERROR:
-          console.log('Fatal network error encountered, try to recover');
-          hls.startLoad();
-          break;
-        case Hls.ErrorTypes.MEDIA_ERROR:
-          console.log('Fatal media error encountered, try to recover');
-          hls.recoverMediaError();
-          break;
-        default:
-          hls.destroy();
-          break;
-      }
-    }
-  });
-
-  // для превью
-  useEffect(() => {
-    const previewVideo = previewVideoRef.current;
-
-    if (previewVideo) {
-      if (Hls.isSupported()) {
-        // Используем hls для браузеров, которые не поддерживают HLS нативно
-        const hls = new Hls();
-        hlsPreviewRef.current = hls; // Сохраняем экземпляр Hls
-        hls.loadSource(videoUrl);
-        hls.attachMedia(previewVideo);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          previewVideo.currentTime = 0; // Начинаем с 0 секунд
-          previewVideo.play();
-        });
-        hls.on(Hls.Events.ERROR, (event, data) => {
-          console.log('HLS error:', data);
-        });
-      } else if (previewVideo.canPlayType('application/vnd.apple.mpegurl')) {
-        // Для браузеров, которые поддерживают HLS нативно (типа Safari)
-        previewVideo.src = videoUrl;
-        previewVideo.currentTime = 0; // Начинаем с 0 секунд
-        previewVideo.play();
-      } else {
-        console.log('HLS is not supported in this browser');
-      }
-
-
-
-
-
-      // Обработчик для остановки видео после 3 секунд
-      const handleTimeUpdate = () => {
-        if (previewVideo.currentTime >= 3) {
-          previewVideo.pause();
-          previewVideo.currentTime = 0; // Сбрасываем время для повторного воспроизведения
-          previewVideo.play(); // Зацикливаем 
-        }
-      };
-
-      previewVideo.addEventListener('timeupdate', handleTimeUpdate);
-
-      // Очистка
-      return () => {
-        if (hlsPreviewRef.current) {
-          hlsPreviewRef.current.destroy(); // Уничтожаем экземпляр Hls
-        }
-        previewVideo.removeEventListener('timeupdate', handleTimeUpdate);
-      };
-    }
-  }, [videoUrl]);
-
-
-  useEffect(() => {
-    if (isPlaying && videoRef.current) {
-      const video = videoRef.current;
-  
-      if (Hls.isSupported()) {
-        const hls = new Hls({
-          maxBufferLength: 30,
-          maxMaxBufferLength: 60,
-          enableWorker: true,
-        });
-        hls.loadSource(videoUrl);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          setIsLoading(false);
-          handlePlayVideo();
-        });
-        hls.on(Hls.Events.ERROR, (event, data) => {
-          console.log('HLS error:', data);
-          if (data.fatal) {
-            switch (data.type) {
-              case Hls.ErrorTypes.NETWORK_ERROR:
-                console.log('Fatal network error encountered, try to recover');
-                hls.startLoad();
-                break;
-              case Hls.ErrorTypes.MEDIA_ERROR:
-                console.log('Fatal media error encountered, try to recover');
-                hls.recoverMediaError();
-                break;
-              default:
-                hls.destroy();
-                break;
-            }
-          }
-          setIsLoading(false);
-        });
-      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = videoUrl;
-        video.addEventListener('loadeddata', () => {
-          setIsLoading(false);
-          handlePlayVideo();
-        });
-        video.addEventListener('error', () => {
-          console.log('Failed to load video');
-          setIsLoading(false);
-        });
-      } else {
-        console.log('HLS is not supported in this browser');
-        setIsLoading(false);
-      }
-    }
-  }, [isPlaying, videoUrl]);
-  // // Эффект для основного видео
-  // useEffect(() => {
-  //   if (isPlaying && videoRef.current) {
-  //     const video = videoRef.current;
-
-  //     if (Hls.isSupported()) {
-  //       const hls = new Hls();
-  //       hls.loadSource(videoUrl);
-  //       hls.attachMedia(video);
-  //       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-  //         setIsLoading(false);
-  //         handlePlayVideo();
-  //       });
-  //       hls.on(Hls.Events.ERROR, (event, data) => {
-  //         console.log('HLS error:', data);
-  //         setIsLoading(false);
-  //       });
-  //     } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-  //       video.src = videoUrl;
-  //       video.addEventListener('loadeddata', () => {
-  //         setIsLoading(false);
-  //         handlePlayVideo();
-  //       });
-  //       video.addEventListener('error', () => {
-  //         console.log('Failed to load video');
-  //         setIsLoading(false);
-  //       });
-  //     } else {
-  //       console.log('HLS is not supported in this browser');
-  //       setIsLoading(false);
-  //     }
-  //   }
-  // }, [isPlaying, videoUrl]);
 
   return (
     <div className={styles.videoContainer}>
-      <div className={styles.preview} onClick={handleOpenModal}>
-        <video
-          ref={previewVideoRef}
-          muted
-          loop
-          autoPlay
-          playsInline
-          className={styles.previewVideo}
-        />
-      </div>
+      {/* Состояние обработки - показываем ТОЛЬКО если видео действительно обрабатывается */}
+      {isProcessing && !previewReady && (
+        <div className={styles.processingOverlay}>
+          <div className={styles.processingSpinner}></div>
+          <p>Video is processing...</p>
+        </div>
+      )}
+
+      {/* Превью - показываем всегда, даже если видео в обработке */}
+      {showPreview && (
+        <div className={styles.preview} onClick={handleOpenModal}>
+          <video
+            ref={previewRef}
+            muted
+            playsInline
+            className={styles.previewVideo}
+            style={{ opacity: previewReady ? 1 : 0 }}
+          />
+        </div>
+      )}
+
+      {/* Модальное окно с плеером */}
       {isPlaying && (
         <div className={styles.modalOverlay} onClick={handleCloseModal}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
@@ -222,27 +135,11 @@ const VideoPlayer = ({ videoUrl, widthVideo }) => {
               controls
               autoPlay
               className={styles.videoPlayer}
-            >
-              Your browser does not support the video tag.
-            </video>
+            />
             <div className={styles.descriptionContainer}>
               <span className={styles.nickname}>ASSET HOLD</span>
               <p className={styles.videoDescription}>
-                This is a sample video description. Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
-                Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, 
-                quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. 
-                Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. 
-                Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-                This is a sample video description. Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
-                Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, 
-                quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. 
-                Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. 
-                Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
-                This is a sample video description. Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
-                Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, 
-                quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. 
-                Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. 
-                Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.
+                This is a sample video description.
               </p>
             </div>
           </div>

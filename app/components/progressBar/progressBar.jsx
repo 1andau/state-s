@@ -2,18 +2,40 @@ import React, { useState } from 'react';
 import axios from 'axios';
 import styles from './inputDesign.module.css';
 import Image from 'next/image';
+import { showToast } from '../toasts/toasts';
 
-const ProgressBar = ({ onUploadSuccess }) => {
+const ProgressBar = ({ onUploadSuccess, onClose }) => {
   const [file, setFile] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
   const [previewUrl, setPreviewUrl] = useState(null);
+  const [uploadComplete, setUploadComplete] = useState(false);
+  const [videoData, setVideoData] = useState(null);
+  const [isSharing, setIsSharing] = useState(false); // Добавляем состояние для лоадера
+  const [shareStatus, setShareStatus] = useState('');
+
+  const checkVideoStatus = async (videoUid) => {
+    try {
+      const response = await axios.get(
+        `https://api.cloudflare.com/client/v4/accounts/${process.env.NEXT_PUBLIC_CLOUDFLARE_ACCOUNT_ID}/stream/${videoUid}`,
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.NEXT_PUBLIC_CLOUDFLARE_API_TOKEN}`,
+          },
+        }
+      );
+      return response.data.result.readyToStream;
+    } catch (error) {
+      console.error('Error checking video status:', error);
+      return false;
+    }
+  };
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     setFile(selectedFile);
-    
-    // Создаем превью для видео
+    setUploadComplete(false);
+
     if (selectedFile) {
       const url = URL.createObjectURL(selectedFile);
       setPreviewUrl(url);
@@ -24,6 +46,7 @@ const ProgressBar = ({ onUploadSuccess }) => {
     if (!file) return;
   
     setIsUploading(true);
+    setUploadProgress(0);
     const formData = new FormData();
     formData.append('file', file);
   
@@ -42,39 +65,44 @@ const ProgressBar = ({ onUploadSuccess }) => {
           },
         }
       );
-       //URL для предпросмотра
-       setPreviewUrl(response.data.result.url);
-       
-      // Вызываем onUploadSuccess с данными о видео
-      onUploadSuccess(response.data.result); // Убедитесь, что response.data.result содержит нужные данные
+
+      setVideoData(response.data.result);
+      setPreviewUrl(response.data.result.playback.hls);
+      setUploadComplete(true);
     } catch (error) {
-      console.log('Error uploading video:', error);
+      console.error('Error uploading video:', error);
+      showToast("Upload failed", "error");
     } finally {
       setIsUploading(false);
     }
   };
+  
+  const handleShare = async () => {
+    setIsSharing(true);
+    
+    // Просто ждем 5 секунд перед закрытием
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    onUploadSuccess(videoData);
+    onClose();
+  };
 
   return (
-    <div className={styles.containerProgress}>
-      <section className={styles.uploadSection}>
-        <header className={styles.header}>
-          <h1 className={styles.title}>Share your reaction</h1>
-          <p className={styles.subtitle}>emotion!s</p>
-        </header>
+    <div className={styles.modalOverlay}>
+      <div className={styles.modalContent}>
+        <button className={styles.closeButton} onClick={onClose}>×</button>
         
-        <section className={styles.previewContainer} aria-label="Preview area">
+        <h2 className={styles.title}>Share your reaction</h2>
+        <p className={styles.subtitle}>emotion!s</p>
+        
+        <div className={styles.previewContainer}>
           {previewUrl ? (
-            <video 
-              controls 
-              src={previewUrl} 
-              className={styles.previewVideo}
-            />
+            <video controls src={previewUrl} className={styles.previewVideo} />
           ) : (
-            <div className={styles.preview}>Preview</div>
+            <div className={styles.previewPlaceholder}>Preview</div>
           )}
-        </section>
+        </div>
         
-        <div className={styles.progressContainer} role="progressbar">
+        <div className={styles.progressContainer}>
           <div className={styles.progressBar}>
             <div 
               className={styles.progressFill} 
@@ -84,47 +112,45 @@ const ProgressBar = ({ onUploadSuccess }) => {
         </div>
         
         <div className={styles.controls}>
-          <div className={styles.logoContainer}>
-            <Image
-              aria-hidden
-              className={styles.statesLogo}
-              src="/logo.svg"
-              alt="home"
-              width={120}
-              height={24}
-            />
-          </div>
+          <input
+            type="file"
+            id="video-upload"
+            accept="video/*"
+            onChange={handleFileChange}
+            className={styles.hiddenInput}
+            disabled={isUploading}
+          />
           
-          <div className={styles.uploadActions}>
-            <input
-              type="file"
-              id="video-upload"
-              accept="video/*"
-              onChange={handleFileChange}
-              className={styles.hiddenInput}
-              disabled={isUploading}
-            />
-            <label 
-              htmlFor="video-upload" 
-              className={styles.fileInputLabel}
-            >
-              сhoose file
-            </label>
-            
+          {!uploadComplete ? (
+            <>
+              <label htmlFor="video-upload" className={styles.fileInputLabel}>
+                Choose File
+              </label>
+              <button 
+                className={styles.uploadButton} 
+                onClick={handleUpload} 
+                disabled={!file || isUploading}
+              >
+                {isUploading ? 'Uploading...' : 'Upload'}
+              </button>
+            </>
+          ) : (
             <button 
-              className={styles.uploadButton} 
-              onClick={handleUpload} 
-              disabled={!file || isUploading}
-              aria-label="Upload file"
+              className={styles.shareButton}
+              onClick={handleShare}
+              disabled={isSharing}
             >
-              {isUploading ? 
-               <p className={styles.uploading}>uploading</p> : 
-            <p className={styles.uploading}>upload</p> 
-              }
+                      {isSharing ? (
+        <>
+          <div className={styles.buttonSpinner}></div>
+          {shareStatus}
+                  </>
+      ) : 'Share'}
+
             </button>
-          </div>
+          )}
         </div>
-      </section>
+      </div>
     </div>
   );
 };

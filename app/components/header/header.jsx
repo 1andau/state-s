@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { useState } from 'react';
 import ProgressBar from '../progressBar/progressBar';
 
-const Header = () => {
+const Header = ({onNewVideoUploaded}) => {
   const [showModal, setShowModal] = useState(false)
 
   const handleShareClick = () => {
@@ -14,6 +14,12 @@ const Header = () => {
 
   const handleCloseModal = () => {
     setShowModal(false);
+  };
+
+
+  const handleUploadSuccess = (videoData) => {
+    onNewVideoUploaded(videoData);
+    handleCloseModal();
   };
 
   return (
@@ -97,10 +103,8 @@ const Header = () => {
      X
             </button>
             <ProgressBar 
-              onUploadSuccess={(data) => {
-                console.log('Upload successful:', data);
-                handleCloseModal();
-              }}
+                   onUploadSuccess={handleUploadSuccess}
+              onClose={handleCloseModal}
             />
           </div>
         </div>

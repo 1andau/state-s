@@ -4,63 +4,83 @@ import styles from "./page.module.css";
 import { useEffect, useState } from "react";
 import VideoUploader from "./components/videoUpload/videoUploader";
 import VideoPlayer from "./components/videoUpload/VideoPlayer";
-import { fetchVideos } from "./components/utls/showPreview";
+import { checkVideoStatus, fetchVideos } from "./components/utls/showPreview";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import { showToast } from "./components/toasts/toasts";
 import ProgressBar from "./components/progressBar/progressBar";
+import Header from "./components/header/header";
 
 export default function Home() {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true); // Состояние загрузки
 
-  useEffect(() => {
-    console.log('Videos updated:', videos);
-  }, [videos]);
-
+  // Загрузка видео и проверка статуса
   useEffect(() => {
     const loadVideos = async () => {
       try {
         const videosData = await fetchVideos();
-        console.log(videosData, 'this is video data');
         setVideos(videosData);
-        // showToast("Videos loaded successfully!", "success") ; //успешно 
+        
+        // Для каждого видео, которое еще обрабатывается, запускаем проверку статуса
+        videosData.forEach(video => {
+          if (!video.readyToStream) {
+            startVideoStatusCheck(video.uid);
+          }
+        });
       } catch (error) {
-        showToast("Failed to load videos.", "error");
+        console.error('Error loading videos:', error);
       } finally {
-        setLoading(false); // Загрузка завершена
+        setLoading(false);
       }
     };
 
+    const startVideoStatusCheck = (videoUid) => {
+      const interval = setInterval(async () => {
+        try {
+          const updatedVideo = await checkVideoStatus(videoUid);
+          if (updatedVideo.readyToStream) {
+            clearInterval(interval);
+            setVideos(prev => prev.map(v => 
+              v.uid === videoUid ? { ...v, readyToStream: true } : v
+            ));
+          }
+        } catch (error) {
+          console.error('Error checking video status:', error);
+        }
+      }, 5000); // Проверяем каждые 5 секунд
+
+      return interval;
+    };
+
     loadVideos();
+
+    return () => {
+      // Здесь можно очистить все интервалы при размонтировании
+    };
   }, []);
 
-  // const handleUploadSuccess = (videoData) => {
-  //   if (videoData.playback && (videoData.playback.hls || videoData.playback.dash)) {
-  //     // Добавляем новое видео в список
-  //     setVideos(prevVideos => [...prevVideos, videoData]);
-  //     showToast("Video uploaded successfully!", "success");
-  //   } else {
-  //     showToast("Failed to upload video.", "error");
-  //   }
-  // };
-  const handleUploadSuccess = (videoData) => {
-    if (videoData.playback && videoData.playback.hls) {
-      setVideos(prevVideos => [...prevVideos, videoData]);
-      showToast("Video uploaded successfully!", "success");
-    } else {
-      showToast("Failed to upload video.", "error");
-    }
-  };
 
+
+  
+  const handleNewVideoUploaded = (newVideo) => {
+    // Добавляем видео без пометки о обработке
+    setVideos(prev => [newVideo, ...prev]);
+    showToast("Video uploaded successfully!", "success");
+  };
 
   const getVideoOrientation = (width, height) => {
     return width > height ? 'landscape' : 'portrait';
   };
 
+
+
+  
+
   return (
     <div className={styles.mainContainer}>
       <ToastContainer /> {/* Контейнер для toast-уведомлений */}
+      <Header onNewVideoUploaded={handleNewVideoUploaded} />
 
       <div className={styles.previewBanner}>
         <Image
@@ -96,11 +116,8 @@ export default function Home() {
       </div>
 
       <h2 className={styles.secondTitle}>Reactions to the album</h2>
-      {/* <ProgressBar /> */}
 
       <div className={styles.container}>
-        <h1>Video Upload and Display</h1>
-        {/* <VideoUploader onUploadSuccess={handleUploadSuccess} /> */}
 
         {loading ? ( // Отображение лоадера, если идет загрузка
           <div className={styles.loaderContainer}>
@@ -124,6 +141,7 @@ export default function Home() {
                     thumbnailUrl={video.thumbnail}
                     widthVideo={video.input.width}
                     heightVideo={video.input.height}
+  isProcessing={!video.readyToStream}
                   />
                 </div>
               );
@@ -131,6 +149,8 @@ export default function Home() {
           </div>
         )}
       </div>
+
+
     </div>
   );
 }
