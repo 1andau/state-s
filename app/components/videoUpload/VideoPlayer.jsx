@@ -7,127 +7,122 @@ const VideoPlayer = ({ videoUrl, isProcessing }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const videoRef = useRef(null);
   const previewRef = useRef(null);
-  const [showPreview, setShowPreview] = useState(true);
-  const [previewReady, setPreviewReady] = useState(false);
+  const [showProcessing, setShowProcessing] = useState(true);
+  const [retryCount, setRetryCount] = useState(0);
+  const loopTimeoutRef = useRef(null); // Реф для таймера цикла
 
-  // Превью видео (3 секунды)
+  // Очистка при размонтировании
   useEffect(() => {
-    if (!showPreview || !previewRef.current) return;
+    return () => {
+      if (loopTimeoutRef.current) {
+        clearTimeout(loopTimeoutRef.current);
+      }
+    };
+  }, []);
+
+  // Магия загрузки превью с бесконечным циклом
+  useEffect(() => {
+    if (!previewRef.current || !videoUrl) return;
 
     const video = previewRef.current;
     let hls;
-    let timeout;
 
-    const playPreview = () => {
+    const startLoop = () => {
       video.currentTime = 0;
       video.play()
         .then(() => {
-          setPreviewReady(true);
-          timeout = setTimeout(() => {
-            video.pause();
-            video.currentTime = 0;
+          loopTimeoutRef.current = setTimeout(() => {
+            startLoop(); // Рекурсивный вызов для бесконечного цикла
           }, 3000);
         })
-        .catch(e => {
-          console.log('Preview play error:', e);
-          setPreviewReady(false);
-        });
+        .catch(e => console.log('⚠️ Ошибка воспроизведения:', e));
     };
 
-    const initPreview = () => {
-      if (Hls.isSupported()) {
-        hls = new Hls();
-        hls.loadSource(videoUrl);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, playPreview);
-        hls.on(Hls.Events.ERROR, () => setPreviewReady(false));
-      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = videoUrl;
-        video.addEventListener('loadedmetadata', playPreview);
-        video.addEventListener('error', () => setPreviewReady(false));
-      }
+    const handleSuccess = () => {
+      console.log('✅ Превью успешно загружено');
+      setShowProcessing(false);
+      startLoop(); // Запускаем цикл после успешной загрузки
     };
 
-    // Если видео не в обработке - сразу инициализируем превью
-    if (!isProcessing) {
-      initPreview();
+    if (Hls.isSupported()) {
+      hls = new Hls({
+        maxMaxBufferLength: 1,
+        xhrSetup: (xhr) => {
+          xhr.withCredentials = false;
+        }
+      });
+
+      hls.on(Hls.Events.MANIFEST_PARSED, handleSuccess);
+      hls.on(Hls.Events.ERROR, () => {
+        console.log('🔄 Попытка перезагрузки превью...');
+        setRetryCount(prev => prev + 1);
+      });
+
+      hls.loadSource(videoUrl);
+      hls.attachMedia(video);
+    } else {
+      video.src = videoUrl;
+      video.addEventListener('loadeddata', handleSuccess);
+      video.addEventListener('error', () => {
+        console.log('🔄 Ошибка видео, пробуем снова...');
+        setRetryCount(prev => prev + 1);
+      });
     }
 
     return () => {
-      clearTimeout(timeout);
+      if (loopTimeoutRef.current) {
+        clearTimeout(loopTimeoutRef.current);
+      }
       if (hls) hls.destroy();
-      video.pause();
-      video.currentTime = 0;
     };
-  }, [videoUrl, showPreview, isProcessing]);
+  }, [videoUrl, retryCount]);
 
-  
-  // Основной плеер
+  // Основной плеер (без изменений)
   useEffect(() => {
     if (!isPlaying || !videoRef.current) return;
-
     const video = videoRef.current;
     let hls;
 
-    const setupPlayer = () => {
-      if (Hls.isSupported()) {
-        hls = new Hls();
-        hls.loadSource(videoUrl);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
-      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = videoUrl;
-        video.addEventListener('loadedmetadata', () => video.play());
-      }
-    };
-
-    setupPlayer();
+    if (Hls.isSupported()) {
+      hls = new Hls();
+      hls.loadSource(videoUrl);
+      hls.attachMedia(video);
+      hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+    } else {
+      video.src = videoUrl;
+      video.addEventListener('loadeddata', () => video.play());
+    }
 
     return () => {
       if (hls) hls.destroy();
-      video.pause();
-      video.currentTime = 0;
     };
   }, [isPlaying, videoUrl]);
 
-  const handleOpenModal = () => {
-    setIsPlaying(true);
-    setShowPreview(false);
-  };
-
-  const handleCloseModal = () => {
-    setIsPlaying(false);
-    setShowPreview(true);
-  };
-
   return (
     <div className={styles.videoContainer}>
-      {/* Состояние обработки - показываем ТОЛЬКО если видео действительно обрабатывается */}
-      {isProcessing && !previewReady && (
+      {/* Оверлей обработки */}
+      {showProcessing && (
         <div className={styles.processingOverlay}>
           <div className={styles.processingSpinner}></div>
           <p>Video is processing...</p>
         </div>
       )}
 
-      {/* Превью - показываем всегда, даже если видео в обработке */}
-      {showPreview && (
-        <div className={styles.preview} onClick={handleOpenModal}>
-          <video
-            ref={previewRef}
-            muted
-            playsInline
-            className={styles.previewVideo}
-            style={{ opacity: previewReady ? 1 : 0 }}
-          />
-        </div>
-      )}
+      {/* Кликабельное превью */}
+      <div className={styles.preview} onClick={() => setIsPlaying(true)}>
+        <video
+          ref={previewRef}
+          muted
+          playsInline
+          className={styles.previewVideo}
+        />
+      </div>
 
-      {/* Модальное окно с плеером */}
+      {/* Модальное окно плеера */}
       {isPlaying && (
-        <div className={styles.modalOverlay} onClick={handleCloseModal}>
+        <div className={styles.modalOverlay} onClick={() => setIsPlaying(false)}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
-            <button className={styles.closeButton} onClick={handleCloseModal}>
+            <button className={styles.closeButton} onClick={() => setIsPlaying(false)}>
               &times;
             </button>
             <video

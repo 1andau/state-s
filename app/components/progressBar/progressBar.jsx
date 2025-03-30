@@ -14,22 +14,7 @@ const ProgressBar = ({ onUploadSuccess, onClose }) => {
   const [isSharing, setIsSharing] = useState(false); // Добавляем состояние для лоадера
   const [shareStatus, setShareStatus] = useState('');
 
-  const checkVideoStatus = async (videoUid) => {
-    try {
-      const response = await axios.get(
-        `https://api.cloudflare.com/client/v4/accounts/${process.env.NEXT_PUBLIC_CLOUDFLARE_ACCOUNT_ID}/stream/${videoUid}`,
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.NEXT_PUBLIC_CLOUDFLARE_API_TOKEN}`,
-          },
-        }
-      );
-      return response.data.result.readyToStream;
-    } catch (error) {
-      console.error('Error checking video status:', error);
-      return false;
-    }
-  };
+
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];

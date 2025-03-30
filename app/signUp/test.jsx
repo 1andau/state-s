@@ -11,23 +11,51 @@ import { showToast } from "./components/toasts/toasts";
 import Header from "./components/header/header";
 
 export default function Home() {
-  const [videos, setVideos] = useState([]);
-  const [loading, setLoading] = useState(true); // Состояние загрузки
-  const [processingVideos, setProcessingVideos] = useState([]);
-
+  // Загрузка видео и проверка статуса
   useEffect(() => {
     const loadVideos = async () => {
       try {
         const videosData = await fetchVideos();
         setVideos(videosData);
+        console.log("Loaded videos:", videosData);
+
+        // Для каждого видео, которое еще обрабатывается, запускаем проверку статуса
+        videosData.forEach(video => {
+          if (!video.readyToStream) {
+            startVideoStatusCheck(video.uid);
+          }
+        });
       } catch (error) {
-        showToast("Failed to load videos.", "error");
+        console.error('Error loading videos:', error);
       } finally {
         setLoading(false);
       }
     };
 
+    const startVideoStatusCheck = (videoUid) => {
+      const interval = setInterval(async () => {
+        try {
+          const updatedVideo = await checkVideoStatus(videoUid);
+          console.log("Checked video status:", updatedVideo);
+          if (updatedVideo.readyToStream) {
+            clearInterval(interval);
+            setVideos(prev => prev.map(v =>
+              v.uid === videoUid ? { ...v, readyToStream: true } : v
+            ));
+          }
+        } catch (error) {
+          console.error('Error checking video status:', error);
+        }
+      }, 5000); // Проверяем каждые 5 секунд
+
+      return interval;
+    };
+
     loadVideos();
+
+    return () => {
+      // Здесь можно очистить все интервалы при размонтировании
+    };
   }, []);
 
   const handleNewVideoUploaded = (newVideo) => {
@@ -39,6 +67,7 @@ export default function Home() {
   const getVideoOrientation = (width, height) => {
     return width > height ? 'landscape' : 'portrait';
   };
+
 
   return (
     <div className={styles.mainContainer}>
@@ -65,12 +94,11 @@ export default function Home() {
                   }`}
                 >
                   <VideoPlayer
-                    videoUrl={video.playback.hls}
-                    thumbnailUrl={video.thumbnail}
-                    widthVideo={video.input.width}
-                    heightVideo={video.input.height}
-                    isProcessing={processingVideos.includes(video.uid)}
-
+                     videoUrl={video.playback.hls}
+                     thumbnailUrl={video.thumbnail}
+                     widthVideo={video.input.width}
+                     heightVideo={video.input.height}
+   isProcessing={!video.readyToStream}
                   />
                 </div>
               );
@@ -90,198 +118,102 @@ import { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import styles from './videoPlayer.module.css';
 
-const VideoPlayer = ({ videoUrl, widthVideo }) => {
+const VideoPlayer = ({ videoUrl, widthVideo, isProcessing }) => {
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const videoRef = useRef(null);
-  const previewVideoRef = useRef(null); // Ссылка на элемент <video> для превью
-  const hlsPreviewRef = useRef(null); // Ссылка на экземпляр Hls для превью
-  const [currentUrl, setCurrentUrl] = useState(null);
-  const [isProcessing, setIsProcessing] = useState(false);
+  const previewRef = useRef(null);
+  const [showPreview, setShowPreview] = useState(true);
+  const [previewReady, setPreviewReady] = useState(false);
 
-  const hls = new Hls({
-    maxBufferLength: 30, // Увеличиваем размер буфера
-    maxMaxBufferLength: 60, // Максимальный размер буфера
-    enableWorker: true, // Используем Web Worker для улучшения производительности
-  });
+  // Превью видео (3 секунды)
+  useEffect(() => {
+    if (!showPreview || !previewRef.current) return;
 
+    const video = previewRef.current;
+    let hls;
+    let timeout;
 
-// console.log(widthVideo, 'widthVideo');
+    const playPreview = () => {
+      video.currentTime = 0;
+      video.play()
+        .then(() => {
+          setPreviewReady(true);
+          console.log("Preview started playing");
+          timeout = setTimeout(() => {
+            video.pause();
+            video.currentTime = 0;
+          }, 3000);
+        })
+        .catch(e => {
+          console.log('Preview play error:', e);
+          setPreviewReady(false);
+        });
+    };
+
+    const initPreview = () => {
+      if (Hls.isSupported()) {
+        hls = new Hls();
+        hls.loadSource(videoUrl);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, playPreview);
+        hls.on(Hls.Events.ERROR, () => setPreviewReady(false));
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = videoUrl;
+        video.addEventListener('loadedmetadata', playPreview);
+        video.addEventListener('error', () => setPreviewReady(false));
+      }
+    };
+
+    // Если видео не в обработке - сразу инициализируем превью
+    if (!isProcessing) {
+      initPreview();
+    }
+
+    return () => {
+      clearTimeout(timeout);
+      if (hls) hls.destroy();
+      video.pause();
+      video.currentTime = 0;
+    };
+  }, [videoUrl, showPreview, isProcessing]);
+
+   // Основной плеер
+  useEffect(() => {
+    if (!isPlaying || !videoRef.current) return;
+
+    const video = videoRef.current;
+    let hls;
+
+    const setupPlayer = () => {
+      if (Hls.isSupported()) {
+        hls = new Hls();
+        hls.loadSource(videoUrl);
+        hls.attachMedia(video);
+        hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
+        video.src = videoUrl;
+        video.addEventListener('loadedmetadata', () => video.play());
+      }
+    };
+
+    setupPlayer();
+
+    return () => {
+      if (hls) hls.destroy();
+      video.pause();
+      video.currentTime = 0;
+    };
+  }, [isPlaying, videoUrl]);
 
   const handleOpenModal = () => {
     setIsPlaying(true);
-    setIsLoading(true);
+    setShowPreview(false);
   };
 
   const handleCloseModal = () => {
-    if (videoRef.current) {
-      videoRef.current.pause();
-      videoRef.current.currentTime = 0;
-    }
     setIsPlaying(false);
-    setIsLoading(false);
+    setShowPreview(true);
   };
-
-  const handlePlayVideo = () => {
-    if (videoRef.current) {
-      videoRef.current.play().catch(error => {
-        console.log('Error attempting to play', error);
-      });
-    }
-  };
-
-
-  hls.on(Hls.Events.ERROR, (event, data) => {
-    console.log('HLS error:', data);
-    if (data.fatal) {
-      switch (data.type) {
-        case Hls.ErrorTypes.NETWORK_ERROR:
-          console.log('Fatal network error encountered, try to recover');
-          hls.startLoad();
-          break;
-        case Hls.ErrorTypes.MEDIA_ERROR:
-          console.log('Fatal media error encountered, try to recover');
-          hls.recoverMediaError();
-          break;
-        default:
-          hls.destroy();
-          break;
-      }
-    }
-  });
-
-  // для превью
-  useEffect(() => {
-    const previewVideo = previewVideoRef.current;
-
-    if (previewVideo) {
-      if (Hls.isSupported()) {
-        // Используем hls для браузеров, которые не поддерживают HLS нативно
-        const hls = new Hls();
-        hlsPreviewRef.current = hls; // Сохраняем экземпляр Hls
-        hls.loadSource(videoUrl);
-        hls.attachMedia(previewVideo);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          previewVideo.currentTime = 0; // Начинаем с 0 секунд
-          previewVideo.play();
-        });
-        hls.on(Hls.Events.ERROR, (event, data) => {
-          console.log('HLS error:', data);
-        });
-      } else if (previewVideo.canPlayType('application/vnd.apple.mpegurl')) {
-        // Для браузеров, которые поддерживают HLS нативно (типа Safari)
-        previewVideo.src = videoUrl;
-        previewVideo.currentTime = 0; // Начинаем с 0 секунд
-        previewVideo.play();
-      } else {
-        console.log('HLS is not supported in this browser');
-      }
-
-      // Обработчик для остановки видео после 3 секунд
-      const handleTimeUpdate = () => {
-        if (previewVideo.currentTime >= 3) {
-          previewVideo.pause();
-          previewVideo.currentTime = 0; // Сбрасываем время для повторного воспроизведения
-          previewVideo.play(); // Зацикливаем 
-        }
-      };
-
-      previewVideo.addEventListener('timeupdate', handleTimeUpdate);
-
-      // Очистка
-      return () => {
-        if (hlsPreviewRef.current) {
-          hlsPreviewRef.current.destroy(); // Уничтожаем экземпляр Hls
-        }
-        previewVideo.removeEventListener('timeupdate', handleTimeUpdate);
-      };
-    }
-  }, [videoUrl]);
-
-
-  useEffect(() => {
-    if (isPlaying && videoRef.current) {
-      const video = videoRef.current;
-  
-      if (Hls.isSupported()) {
-        const hls = new Hls({
-          maxBufferLength: 30,
-          maxMaxBufferLength: 60,
-          enableWorker: true,
-        });
-        hls.loadSource(videoUrl);
-        hls.attachMedia(video);
-        hls.on(Hls.Events.MANIFEST_PARSED, () => {
-          setIsLoading(false);
-          handlePlayVideo();
-        });
-        hls.on(Hls.Events.ERROR, (event, data) => {
-          console.log('HLS error:', data);
-          if (data.fatal) {
-            switch (data.type) {
-              case Hls.ErrorTypes.NETWORK_ERROR:
-                console.log('Fatal network error encountered, try to recover');
-                hls.startLoad();
-                break;
-              case Hls.ErrorTypes.MEDIA_ERROR:
-                console.log('Fatal media error encountered, try to recover');
-                hls.recoverMediaError();
-                break;
-              default:
-                hls.destroy();
-                break;
-            }
-          }
-          setIsLoading(false);
-        });
-      } else if (video.canPlayType('application/vnd.apple.mpegurl')) {
-        video.src = videoUrl;
-        video.addEventListener('loadeddata', () => {
-          setIsLoading(false);
-          handlePlayVideo();
-        });
-        video.addEventListener('error', () => {
-          console.log('Failed to load video');
-          setIsLoading(false);
-        });
-      } else {
-        console.log('HLS is not supported in this browser');
-        setIsLoading(false);
-      }
-    }
-  }, [isPlaying, videoUrl]);
-
-
-  useEffect(() => {
-    // Если есть временный URL (blob), используем его сначала
-    if (videoUrl.startsWith('blob:')) {
-      setCurrentUrl(videoUrl);
-      setIsProcessing(true);
-      
-      // Пытаемся загрузить оригинальный URL в фоне
-      const checkOriginal = async () => {
-        try {
-          const video = document.createElement('video');
-          video.src = videoUrl.replace('blob:', '');
-          
-          await new Promise((resolve, reject) => {
-            video.addEventListener('loadeddata', resolve);
-            video.addEventListener('error', reject);
-          });
-          
-          setCurrentUrl(videoUrl.replace('blob:', ''));
-          setIsProcessing(false);
-        } catch {
-          // Оставляем blob URL если оригинальный не загрузился
-        }
-      };
-      
-      checkOriginal();
-    } else {
-      setCurrentUrl(videoUrl);
-    }
-  }, [videoUrl]);
-
 
   return (
     <div className={styles.videoContainer}>
@@ -292,10 +224,10 @@ const VideoPlayer = ({ videoUrl, widthVideo }) => {
           <p>Video is processing...</p>
         </div>
       )}
-      
+
       <div className={styles.preview} onClick={handleOpenModal}>
         <video
-          ref={previewVideoRef}
+          ref={previewRef}
           muted
           loop
           autoPlay
@@ -320,7 +252,7 @@ const VideoPlayer = ({ videoUrl, widthVideo }) => {
             <div className={styles.descriptionContainer}>
               <span className={styles.nickname}>ASSET HOLD</span>
               <p className={styles.videoDescription}>
-                This is a sample video description. Lorem ipsum dolor sit amet, consectetur adipiscing elit. 
+                This is a sample video description. Lorem ipsum dolor sit amet, consectetur adipiscing elit.
               </p>
             </div>
           </div>
@@ -333,182 +265,8 @@ const VideoPlayer = ({ videoUrl, widthVideo }) => {
 export default VideoPlayer;
 
 
-const ProgressBar = ({ onUploadSuccess, onClose }) => {
-  const [file, setFile] = useState(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState(null);
-  const [uploadComplete, setUploadComplete] = useState(false);
-  const [videoData, setVideoData] = useState(null);
-  const [isSharing, setIsSharing] = useState(false); // Добавляем состояние для лоадера
-  const [shareStatus, setShareStatus] = useState('');
+import axios from 'axios';
 
-  const checkVideoStatus = async (videoUid) => {
-    try {
-      const response = await axios.get(
-        `https://api.cloudflare.com/client/v4/accounts/${process.env.NEXT_PUBLIC_CLOUDFLARE_ACCOUNT_ID}/stream/${videoUid}`,
-        {
-          headers: {
-            Authorization: `Bearer ${process.env.NEXT_PUBLIC_CLOUDFLARE_API_TOKEN}`,
-          },
-        }
-      );
-      return response.data.result.readyToStream;
-    } catch (error) {
-      console.error('Error checking video status:', error);
-      return false;
-    }
-  };
-
-  const handleFileChange = (e) => {
-    const selectedFile = e.target.files[0];
-    setFile(selectedFile);
-    setUploadComplete(false);
-
-    if (selectedFile) {
-      const url = URL.createObjectURL(selectedFile);
-      setPreviewUrl(url);
-    }
-  };
-
-  const handleUpload = async () => {
-    if (!file) return;
-  
-    setIsUploading(true);
-    setUploadProgress(0);
-    const formData = new FormData();
-    formData.append('file', file);
-  
-    try {
-      const response = await axios.post(
-        `https://api.cloudflare.com/client/v4/accounts/${process.env.NEXT_PUBLIC_CLOUDFLARE_ACCOUNT_ID}/stream`,
-        formData,
-        {
-          headers: {
-            'Content-Type': 'multipart/form-data',
-            Authorization: `Bearer ${process.env.NEXT_PUBLIC_CLOUDFLARE_API_TOKEN}`,
-          },
-          onUploadProgress: (progressEvent) => {
-            const progress = Math.round((progressEvent.loaded / progressEvent.total) * 100);
-            setUploadProgress(progress);
-          },
-        }
-      );
-
-      setVideoData(response.data.result);
-      setPreviewUrl(response.data.result.playback.hls);
-      setUploadComplete(true);
-    } catch (error) {
-      console.error('Error uploading video:', error);
-      showToast("Upload failed", "error");
-    } finally {
-      setIsUploading(false);
-    }
-  };
-  
-  const handleShare = async () => {
-    setIsSharing(true);
-    setShareStatus('Processing video...');
-
-    try {
-      let isReady = await checkVideoStatus(videoData.uid);
-      
-      if (!isReady) {
-        setShareStatus('Waiting for video processing...');
-        const interval = setInterval(async () => {
-          isReady = await checkVideoStatus(videoData.uid);
-          if (isReady) {
-            clearInterval(interval);
-            onUploadSuccess(videoData);
-            onClose();
-          }
-        }, 5000);
-      } else {
-        onUploadSuccess(videoData);
-        onClose();
-      }
-    } catch (error) {
-      console.error('Share error:', error);
-      setShareStatus('Error sharing video');
-    } finally {
-      setIsSharing(false);
-    }
-  };
-
-
-  return (
-    <div className={styles.modalOverlay}>
-      <div className={styles.modalContent}>
-        <button className={styles.closeButton} onClick={onClose}>×</button>
-        
-        <h2 className={styles.title}>Share your reaction</h2>
-        <p className={styles.subtitle}>emotion!s</p>
-        
-        <div className={styles.previewContainer}>
-          {previewUrl ? (
-            <video controls src={previewUrl} className={styles.previewVideo} />
-          ) : (
-            <div className={styles.previewPlaceholder}>Preview</div>
-          )}
-        </div>
-        
-        <div className={styles.progressContainer}>
-          <div className={styles.progressBar}>
-            <div 
-              className={styles.progressFill} 
-              style={{ width: `${uploadProgress}%` }}
-            />
-          </div>
-        </div>
-        
-        <div className={styles.controls}>
-          <input
-            type="file"
-            id="video-upload"
-            accept="video/*"
-            onChange={handleFileChange}
-            className={styles.hiddenInput}
-            disabled={isUploading}
-          />
-          
-          {!uploadComplete ? (
-            <>
-              <label htmlFor="video-upload" className={styles.fileInputLabel}>
-                Choose File
-              </label>
-              <button 
-                className={styles.uploadButton} 
-                onClick={handleUpload} 
-                disabled={!file || isUploading}
-              >
-                {isUploading ? 'Uploading...' : 'Upload'}
-              </button>
-            </>
-          ) : (
-            <button 
-              className={styles.shareButton}
-              onClick={handleShare}
-              disabled={isSharing}
-            >
-                      {isSharing ? (
-        <>
-          <div className={styles.buttonSpinner}></div>
-          {shareStatus}
-                  </>
-      ) : 'Share'}
-
-            </button>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default ProgressBar;
-
-
-// это апи запрос 
 export const fetchVideos = async () => {
   try {
     const response = await axios.get(
@@ -530,9 +288,18 @@ export const fetchVideos = async () => {
 
 
 
-
-
-
+export const checkVideoStatus = async (videoUid) => {
+  const response = await fetch(
+    `https://api.cloudflare.com/client/v4/accounts/${process.env.NEXT_PUBLIC_CLOUDFLARE_ACCOUNT_ID}/stream/${videoUid}`,
+    {
+      headers: {
+        Authorization: `Bearer ${process.env.NEXT_PUBLIC_CLOUDFLARE_API_TOKEN}`,
+      },
+    }
+  );
+  const data = await response.json();
+  return data.result;
+};
 
 
 
@@ -546,72 +313,111 @@ export const fetchVideos = async () => {
 "use client";
 import { useEffect, useState } from 'react';
 import VideoPlayer from './components/VideoPlayer';
-import { fetchVideos, checkVideoStatus } from './api/streamApi'; // Предполагается, что у вас есть такой метод
-import styles from './styles.module.css';
+import styles from './page.module.css';
 
 export default function Home() {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Загрузка видео и проверка статуса
+  // Функция для загрузки видео
+  const fetchVideos = async () => {
+    try {
+      const response = await fetch(
+        `https://api.cloudflare.com/client/v4/accounts/${process.env.NEXT_PUBLIC_CLOUDFLARE_ACCOUNT_ID}/stream`,
+        {
+          headers: {
+            Authorization: `Bearer ${process.env.NEXT_PUBLIC_CLOUDFLARE_API_TOKEN}`,
+          },
+        }
+      );
+      const data = await response.json();
+      return data.result || []; // Всегда возвращаем массив
+    } catch (error) {
+      console.error('Error fetching videos:', error);
+      return []; // Возвращаем пустой массив в случае ошибки
+    }
+  };
+
+  // Загрузка видео при монтировании
   useEffect(() => {
     const loadVideos = async () => {
-      try {
-        const videosData = await fetchVideos();
-        setVideos(videosData);
-        
-        // Для каждого видео, которое еще обрабатывается, запускаем проверку статуса
-        videosData.forEach(video => {
-          if (!video.readyToStream) {
-            startVideoStatusCheck(video.uid);
-          }
-        });
-      } catch (error) {
-        console.error('Error loading videos:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    const startVideoStatusCheck = (videoUid) => {
-      const interval = setInterval(async () => {
-        try {
-          const updatedVideo = await checkVideoStatus(videoUid);
-          if (updatedVideo.readyToStream) {
-            clearInterval(interval);
-            setVideos(prev => prev.map(v => 
-              v.uid === videoUid ? { ...v, readyToStream: true } : v
-            ));
-          }
-        } catch (error) {
-          console.error('Error checking video status:', error);
-        }
-      }, 5000); // Проверяем каждые 5 секунд
-
-      return interval;
+      const videosData = await fetchVideos();
+      setVideos(videosData);
+      setLoading(false);
     };
 
     loadVideos();
+  }, []);
 
-    return () => {
-      // Здесь можно очистить все интервалы при размонтировании
+  // Проверка статуса видео с интервалом
+  useEffect(() => {
+    const checkVideoStatus = async (videoUid) => {
+      try {
+        const response = await fetch(
+          `https://api.cloudflare.com/client/v4/accounts/${process.env.NEXT_PUBLIC_CLOUDFLARE_ACCOUNT_ID}/stream/${videoUid}`,
+          {
+            headers: {
+              Authorization: `Bearer ${process.env.NEXT_PUBLIC_CLOUDFLARE_API_TOKEN}`,
+            },
+          }
+        );
+        const data = await response.json();
+        return data.result?.readyToStream || false;
+      } catch (error) {
+        return false;
+      }
     };
+
+    const interval = setInterval(async () => {
+      setVideos(prevVideos => {
+        // Проверяем что prevVideos - массив
+        if (!Array.isArray(prevVideos)) return [];
+        
+        // Обновляем только видео которые еще обрабатываются
+        return Promise.all(prevVideos.map(async video => {
+          if (!video.readyToStream) {
+            const isReady = await checkVideoStatus(video.uid);
+            return isReady ? { ...video, readyToStream: true } : video;
+          }
+          return video;
+        }));
+      });
+    }, 10000); // Проверяем каждые 10 секунд
+
+    return () => clearInterval(interval);
   }, []);
 
   if (loading) {
-    return <div className={styles.loader}>Loading...</div>;
+    return (
+      <div className={styles.loaderContainer}>
+        <div className={styles.loader}></div>
+        <p>Loading videos...</p>
+      </div>
+    );
+  }
+
+  // Добавляем проверку что videos - массив
+  if (!Array.isArray(videos) {
+    return <div className={styles.error}>Error loading videos</div>;
   }
 
   return (
-    <div className={styles.videoGrid}>
-      {videos.map(video => (
-        <div key={video.uid} className={styles.videoItem}>
-          <VideoPlayer 
-            videoUrl={video.playback.hls} 
-            isProcessing={!video.readyToStream}
-          />
+    <div className={styles.mainContainer}>
+      <div className={styles.container}>
+        <div className={styles.videoGrid}>
+          {videos.map(video => (
+            <div 
+              key={video.uid} 
+              className={styles.videoItem}
+            >
+              <VideoPlayer
+                videoUrl={video.playback?.hls}
+                isProcessing={!video.readyToStream}
+              />
+            </div>
+          ))}
         </div>
-      ))}
+      </div>
     </div>
   );
 }

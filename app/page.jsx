@@ -2,77 +2,96 @@
 import Image from "next/image";
 import styles from "./page.module.css";
 import { useEffect, useState } from "react";
-import VideoUploader from "./components/videoUpload/videoUploader";
 import VideoPlayer from "./components/videoUpload/VideoPlayer";
 import { checkVideoStatus, fetchVideos } from "./components/utls/showPreview";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import { showToast } from "./components/toasts/toasts";
-import ProgressBar from "./components/progressBar/progressBar";
 import Header from "./components/header/header";
 
 export default function Home() {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true); // Состояние загрузки
+  const [newVideoAdded, setNewVideoAdded] = useState(false); // Флаг нового видео
 
-  // Загрузка видео и проверка статуса
-  useEffect(() => {
-    const loadVideos = async () => {
-      try {
-        const videosData = await fetchVideos();
+  // Загрузка видео с принудительным обновлением
+  const loadVideos = async (force = false) => {
+    try {
+      console.log("Fetching videos...");
+      const videosData = await fetchVideos();
+      
+      // Принудительное обновление если есть новые видео
+      if (force || newVideoAdded) {
+        console.log("Force updating videos list");
         setVideos(videosData);
-        
-        // Для каждого видео, которое еще обрабатывается, запускаем проверку статуса
-        videosData.forEach(video => {
-          if (!video.readyToStream) {
-            startVideoStatusCheck(video.uid);
-          }
-        });
-      } catch (error) {
-        console.error('Error loading videos:', error);
-      } finally {
-        setLoading(false);
+        setNewVideoAdded(false);
+      } 
+      // Или обычное обновление если список пустой
+      else if (videos.length === 0) {
+        setVideos(videosData);
       }
-    };
 
-    const startVideoStatusCheck = (videoUid) => {
-      const interval = setInterval(async () => {
-        try {
-          const updatedVideo = await checkVideoStatus(videoUid);
-          if (updatedVideo.readyToStream) {
-            clearInterval(interval);
-            setVideos(prev => prev.map(v => 
-              v.uid === videoUid ? { ...v, readyToStream: true } : v
-            ));
-          }
-        } catch (error) {
-          console.error('Error checking video status:', error);
+      // Запускаем проверку статуса для всех видео в обработке
+      videosData.forEach(video => {
+        if (!video.readyToStream) {
+          startVideoStatusCheck(video.uid);
         }
-      }, 5000); // Проверяем каждые 5 секунд
+      });
+    } catch (error) {
+      console.error('Error loading videos:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-      return interval;
-    };
+  // Проверка статуса видео
+  const startVideoStatusCheck = (videoUid) => {
+    const interval = setInterval(async () => {
+      try {
+        const updatedVideo = await checkVideoStatus(videoUid);
+        console.log("Video status check:", updatedVideo.uid, updatedVideo.readyToStream);
+        
+        if (updatedVideo.readyToStream) {
+          clearInterval(interval);
+          setVideos(prev => prev.map(v => 
+            v.uid === videoUid ? { 
+              ...v, 
+              readyToStream: true,
+              // Важно обновить URL, так как после обработки он может измениться!
+              playback: {
+                ...v.playback,
+                hls: `https://customer-b7p449dj2tzggbg3.cloudflarestream.com/${videoUid}/manifest/video.m3u8`
+              }
+            } : v
+          ));
+        }
+      } catch (error) {
+        console.error('Status check error:', error);
+      }
+    }, 5000); // Проверяем каждые 5 секунд
 
+    return interval;
+  };
+
+  // Первоначальная загрузка
+  useEffect(() => {
     loadVideos();
-
-    return () => {
-      // Здесь можно очистить все интервалы при размонтировании
-    };
   }, []);
 
-
-
-  
+  // Обработчик нового видео
   const handleNewVideoUploaded = (newVideo) => {
-    // Добавляем видео без пометки о обработке
+    console.log("New video uploaded:", newVideo.uid);
     setVideos(prev => [newVideo, ...prev]);
-    showToast("Video uploaded successfully!", "success");
+    setNewVideoAdded(true); // Устанавливаем флаг нового видео
+    startVideoStatusCheck(newVideo.uid); // Начинаем проверку статуса
+    
+    // Принудительно обновляем список через 10 секунд
+    setTimeout(() => loadVideos(true), 10000);
   };
+
 
   const getVideoOrientation = (width, height) => {
     return width > height ? 'landscape' : 'portrait';
   };
-
 
 
   
@@ -142,6 +161,7 @@ export default function Home() {
                     widthVideo={video.input.width}
                     heightVideo={video.input.height}
   isProcessing={!video.readyToStream}
+  
                   />
                 </div>
               );

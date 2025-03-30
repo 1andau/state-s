@@ -22,14 +22,19 @@ export const fetchVideos = async () => {
 
 
 export const checkVideoStatus = async (videoUid) => {
-  const response = await fetch(
-    `https://api.cloudflare.com/client/v4/accounts/${process.env.NEXT_PUBLIC_CLOUDFLARE_ACCOUNT_ID}/stream/${videoUid}`,
-    {
-      headers: {
-        Authorization: `Bearer ${process.env.NEXT_PUBLIC_CLOUDFLARE_API_TOKEN}`,
-      },
-    }
-  );
+  console.log("Checking status for:", videoUid);
+  const response = await fetch(`https://api.cloudflare.com/client/v4/accounts/${process.env.NEXT_PUBLIC_CLOUDFLARE_ACCOUNT_ID}/stream/${videoUid}`, {
+    headers: {
+      Authorization: `Bearer ${process.env.NEXT_PUBLIC_CLOUDFLARE_API_TOKEN}`,
+    },
+  });
+  
+  if (!response.ok) {
+    console.error("Status check failed:", response.status);
+    throw new Error('Status check failed');
+  }
+
   const data = await response.json();
+  console.log("Status response:", data.result);
   return data.result;
 };
