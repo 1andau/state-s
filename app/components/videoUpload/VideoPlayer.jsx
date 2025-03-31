@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import Hls from 'hls.js';
 import styles from './videoPlayer.module.css';
 
@@ -8,19 +8,22 @@ const VideoPlayer = ({ videoUrl, isProcessing }) => {
   const videoRef = useRef(null);
   const previewRef = useRef(null);
   const [showProcessing, setShowProcessing] = useState(true);
-  const [retryCount, setRetryCount] = useState(0);
-  const loopTimeoutRef = useRef(null); // Реф для таймера цикла
+  const hlsRef = useRef(null);
+  const retryTimeoutRef = useRef(null);
 
   // Очистка при размонтировании
   useEffect(() => {
     return () => {
-      if (loopTimeoutRef.current) {
-        clearTimeout(loopTimeoutRef.current);
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+      }
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
       }
     };
   }, []);
 
-  // Магия загрузки превью с бесконечным циклом
+  // Загрузка и воспроизведение превью
   useEffect(() => {
     if (!previewRef.current || !videoUrl) return;
 
@@ -29,57 +32,62 @@ const VideoPlayer = ({ videoUrl, isProcessing }) => {
 
     const startLoop = () => {
       video.currentTime = 0;
-      video.play()
-        .then(() => {
-          loopTimeoutRef.current = setTimeout(() => {
-            startLoop(); // Рекурсивный вызов для бесконечного цикла
-          }, 3000);
-        })
-        .catch(e => console.log('⚠️ Ошибка воспроизведения:', e));
+      video.play().catch(e => console.log('⚠️ Ошибка воспроизведения:', e));
     };
 
     const handleSuccess = () => {
-      console.log('✅ Превью успешно загружено');
       setShowProcessing(false);
-      startLoop(); // Запускаем цикл после успешной загрузки
-    };
-
-    if (Hls.isSupported()) {
-      hls = new Hls({
-        maxMaxBufferLength: 1,
-        xhrSetup: (xhr) => {
-          xhr.withCredentials = false;
+      video.addEventListener('timeupdate', () => {
+        if (video.currentTime > 2.9) {
+          video.currentTime = 0;
         }
       });
+      startLoop();
+    };
 
-      hls.on(Hls.Events.MANIFEST_PARSED, handleSuccess);
-      hls.on(Hls.Events.ERROR, () => {
-        console.log('🔄 Попытка перезагрузки превью...');
-        setRetryCount(prev => prev + 1);
-      });
+    const loadVideo = () => {
+      if (Hls.isSupported()) {
+        hls = new Hls({
+          maxMaxBufferLength: 1,
+          xhrSetup: (xhr) => {
+            xhr.withCredentials = false;
+          }
+        });
 
-      hls.loadSource(videoUrl);
-      hls.attachMedia(video);
-    } else {
-      video.src = videoUrl;
-      video.addEventListener('loadeddata', handleSuccess);
-      video.addEventListener('error', () => {
-        console.log('🔄 Ошибка видео, пробуем снова...');
-        setRetryCount(prev => prev + 1);
-      });
-    }
+        hls.on(Hls.Events.MANIFEST_PARSED, handleSuccess);
+        hls.on(Hls.Events.ERROR, (event, data) => {
+          if (data.fatal) {
+            retryTimeoutRef.current = setTimeout(loadVideo, 3000);
+          }
+        });
+
+        hls.loadSource(videoUrl);
+        hls.attachMedia(video);
+        hlsRef.current = hls;
+      } else {
+        video.src = videoUrl;
+        video.addEventListener('loadeddata', handleSuccess);
+        video.addEventListener('error', () => {
+          retryTimeoutRef.current = setTimeout(loadVideo, 3000);
+        });
+      }
+    };
+
+    loadVideo();
 
     return () => {
-      if (loopTimeoutRef.current) {
-        clearTimeout(loopTimeoutRef.current);
-      }
       if (hls) hls.destroy();
+      video.removeEventListener('timeupdate', handleSuccess);
+      video.removeEventListener('loadeddata', handleSuccess);
+      video.removeEventListener('error', () => {});
     };
-  }, [videoUrl, retryCount]);
+  }, [videoUrl]);
 
-  // Основной плеер (без изменений)
-  useEffect(() => {
-    if (!isPlaying || !videoRef.current) return;
+  // Основной плеер
+  const handlePlay = useCallback(() => {
+    setIsPlaying(true);
+    if (!videoRef.current) return;
+
     const video = videoRef.current;
     let hls;
 
@@ -88,19 +96,19 @@ const VideoPlayer = ({ videoUrl, isProcessing }) => {
       hls.loadSource(videoUrl);
       hls.attachMedia(video);
       hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
+      hlsRef.current = hls;
     } else {
       video.src = videoUrl;
-      video.addEventListener('loadeddata', () => video.play());
+      video.play();
     }
 
     return () => {
       if (hls) hls.destroy();
     };
-  }, [isPlaying, videoUrl]);
+  }, [videoUrl]);
 
   return (
     <div className={styles.videoContainer}>
-      {/* Оверлей обработки */}
       {showProcessing && (
         <div className={styles.processingOverlay}>
           <div className={styles.processingSpinner}></div>
@@ -108,8 +116,7 @@ const VideoPlayer = ({ videoUrl, isProcessing }) => {
         </div>
       )}
 
-      {/* Кликабельное превью */}
-      <div className={styles.preview} onClick={() => setIsPlaying(true)}>
+      <div className={styles.preview} onClick={handlePlay}>
         <video
           ref={previewRef}
           muted
@@ -118,7 +125,6 @@ const VideoPlayer = ({ videoUrl, isProcessing }) => {
         />
       </div>
 
-      {/* Модальное окно плеера */}
       {isPlaying && (
         <div className={styles.modalOverlay} onClick={() => setIsPlaying(false)}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>

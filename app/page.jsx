@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import styles from "./page.module.css";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import VideoPlayer from "./components/videoUpload/VideoPlayer";
 import { checkVideoStatus, fetchVideos } from "./components/utls/showPreview";
 import { ToastContainer, toast } from 'react-toastify';
@@ -13,27 +13,25 @@ export default function Home() {
   const [loading, setLoading] = useState(true); // Состояние загрузки
   const [newVideoAdded, setNewVideoAdded] = useState(false); // Флаг нового видео
 
-  // Загрузка видео с принудительным обновлением
-  const loadVideos = async (force = false) => {
-    try {
-      console.log("Fetching videos...");
-      const videosData = await fetchVideos();
-      
-      // Принудительное обновление если есть новые видео
-      if (force || newVideoAdded) {
-        console.log("Force updating videos list");
-        setVideos(videosData);
-        setNewVideoAdded(false);
-      } 
-      // Или обычное обновление если список пустой
-      else if (videos.length === 0) {
-        setVideos(videosData);
-      }
+  const checkingStatusRef = useRef(new Set());
 
-      // Запускаем проверку статуса для всех видео в обработке
+  // Загрузка видео с мемоизацией
+  const loadVideos = useCallback(async () => {
+    try {
+      const videosData = await fetchVideos();
+      setVideos(prevVideos => {
+        // Обновляем только если данные изменились
+        if (JSON.stringify(prevVideos) !== JSON.stringify(videosData)) {
+          return videosData;
+        }
+        return prevVideos;
+      });
+      
+      // Запускаем проверку статуса только для новых видео в обработке
       videosData.forEach(video => {
-        if (!video.readyToStream) {
+        if (!video.readyToStream && !checkingStatusRef.current.has(video.uid)) {
           startVideoStatusCheck(video.uid);
+          checkingStatusRef.current.add(video.uid);
         }
       });
     } catch (error) {
@@ -41,22 +39,22 @@ export default function Home() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // Проверка статуса видео
-  const startVideoStatusCheck = (videoUid) => {
+  // Проверка статуса видео с мемоизацией
+  const startVideoStatusCheck = useCallback((videoUid) => {
     const interval = setInterval(async () => {
       try {
         const updatedVideo = await checkVideoStatus(videoUid);
-        console.log("Video status check:", updatedVideo.uid, updatedVideo.readyToStream);
         
         if (updatedVideo.readyToStream) {
           clearInterval(interval);
+          checkingStatusRef.current.delete(videoUid);
+          
           setVideos(prev => prev.map(v => 
-            v.uid === videoUid ? { 
+            v.uid === videoUid && !v.readyToStream ? { 
               ...v, 
               readyToStream: true,
-              // Важно обновить URL, так как после обработки он может измениться!
               playback: {
                 ...v.playback,
                 hls: `https://customer-b7p449dj2tzggbg3.cloudflarestream.com/${videoUid}/manifest/video.m3u8`
@@ -67,33 +65,32 @@ export default function Home() {
       } catch (error) {
         console.error('Status check error:', error);
       }
-    }, 5000); // Проверяем каждые 5 секунд
+    }, 5000);
 
-    return interval;
-  };
+    return () => clearInterval(interval);
+  }, []);
+
+  // Обработчик нового видео
+  const handleNewVideoUploaded = useCallback((newVideo) => {
+    setVideos(prev => {
+      // Проверяем, нет ли уже такого видео в списке
+      if (!prev.some(v => v.uid === newVideo.uid)) {
+        startVideoStatusCheck(newVideo.uid);
+        checkingStatusRef.current.add(newVideo.uid);
+        return [newVideo, ...prev];
+      }
+      return prev;
+    });
+  }, [startVideoStatusCheck]);
 
   // Первоначальная загрузка
   useEffect(() => {
     loadVideos();
-  }, []);
-
-  // Обработчик нового видео
-  const handleNewVideoUploaded = (newVideo) => {
-    console.log("New video uploaded:", newVideo.uid);
-    setVideos(prev => [newVideo, ...prev]);
-    setNewVideoAdded(true); // Устанавливаем флаг нового видео
-    startVideoStatusCheck(newVideo.uid); // Начинаем проверку статуса
-    
-    // Принудительно обновляем список через 10 секунд
-    setTimeout(() => loadVideos(true), 10000);
-  };
-
+  }, [loadVideos]);
 
   const getVideoOrientation = (width, height) => {
     return width > height ? 'landscape' : 'portrait';
   };
-
-
   
 
   return (
