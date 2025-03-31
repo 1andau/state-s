@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState, useCallback } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import styles from './videoPlayer.module.css';
 
@@ -8,22 +8,26 @@ const VideoPlayer = ({ videoUrl, isProcessing }) => {
   const videoRef = useRef(null);
   const previewRef = useRef(null);
   const [showProcessing, setShowProcessing] = useState(true);
-  const hlsRef = useRef(null);
-  const retryTimeoutRef = useRef(null);
+  const retryCountRef = useRef(0);
+  const hlsInstances = useRef({ preview: null, main: null });
+  const loopTimeoutRef = useRef(null);
 
   // Очистка при размонтировании
   useEffect(() => {
     return () => {
-      if (hlsRef.current) {
-        hlsRef.current.destroy();
+      if (hlsInstances.current.preview) {
+        hlsInstances.current.preview.destroy();
       }
-      if (retryTimeoutRef.current) {
-        clearTimeout(retryTimeoutRef.current);
+      if (hlsInstances.current.main) {
+        hlsInstances.current.main.destroy();
+      }
+      if (loopTimeoutRef.current) {
+        clearTimeout(loopTimeoutRef.current);
       }
     };
   }, []);
 
-  // Загрузка и воспроизведение превью
+  // Эффект для превью видео (оптимизированная версия)
   useEffect(() => {
     if (!previewRef.current || !videoUrl) return;
 
@@ -31,21 +35,30 @@ const VideoPlayer = ({ videoUrl, isProcessing }) => {
     let hls;
 
     const startLoop = () => {
-      video.currentTime = 0;
-      video.play().catch(e => console.log('⚠️ Ошибка воспроизведения:', e));
+      if (video.readyState >= 2) { // Проверяем, что видео загружено
+        video.currentTime = 0;
+        video.play().catch(e => console.log('⚠️ Ошибка воспроизведения:', e));
+      }
+      loopTimeoutRef.current = setTimeout(startLoop, 3000);
     };
 
     const handleSuccess = () => {
       setShowProcessing(false);
-      video.addEventListener('timeupdate', () => {
-        if (video.currentTime > 2.9) {
-          video.currentTime = 0;
-        }
-      });
       startLoop();
     };
 
-    const loadVideo = () => {
+    const handleError = () => {
+      console.log('🔄 Попытка перезагрузки превью...');
+      retryCountRef.current += 1;
+      if (retryCountRef.current < 5) { // Лимит попыток
+        setTimeout(() => {
+          if (hls) hls.destroy();
+          initPlayer();
+        }, 2000);
+      }
+    };
+
+    const initPlayer = () => {
       if (Hls.isSupported()) {
         hls = new Hls({
           maxMaxBufferLength: 1,
@@ -55,68 +68,67 @@ const VideoPlayer = ({ videoUrl, isProcessing }) => {
         });
 
         hls.on(Hls.Events.MANIFEST_PARSED, handleSuccess);
-        hls.on(Hls.Events.ERROR, (event, data) => {
-          if (data.fatal) {
-            retryTimeoutRef.current = setTimeout(loadVideo, 3000);
-          }
-        });
+        hls.on(Hls.Events.ERROR, handleError);
 
         hls.loadSource(videoUrl);
         hls.attachMedia(video);
-        hlsRef.current = hls;
+        hlsInstances.current.preview = hls;
       } else {
         video.src = videoUrl;
         video.addEventListener('loadeddata', handleSuccess);
-        video.addEventListener('error', () => {
-          retryTimeoutRef.current = setTimeout(loadVideo, 3000);
-        });
+        video.addEventListener('error', handleError);
       }
     };
 
-    loadVideo();
+    initPlayer();
 
     return () => {
       if (hls) hls.destroy();
-      video.removeEventListener('timeupdate', handleSuccess);
+      if (loopTimeoutRef.current) {
+        clearTimeout(loopTimeoutRef.current);
+      }
       video.removeEventListener('loadeddata', handleSuccess);
-      video.removeEventListener('error', () => {});
+      video.removeEventListener('error', handleError);
     };
-  }, [videoUrl]);
+  }, [videoUrl]); // Убрал retryCount из зависимостей
 
-  // Основной плеер
-  const handlePlay = useCallback(() => {
-    setIsPlaying(true);
-    if (!videoRef.current) return;
-
+  // Эффект для основного плеера (без изменений)
+  useEffect(() => {
+    if (!isPlaying || !videoRef.current) return;
+    
     const video = videoRef.current;
     let hls;
 
+    const handlePlay = () => {
+      video.play().catch(e => console.log('Ошибка воспроизведения:', e));
+    };
+
     if (Hls.isSupported()) {
       hls = new Hls();
+      hls.on(Hls.Events.MANIFEST_PARSED, handlePlay);
       hls.loadSource(videoUrl);
       hls.attachMedia(video);
-      hls.on(Hls.Events.MANIFEST_PARSED, () => video.play());
-      hlsRef.current = hls;
+      hlsInstances.current.main = hls;
     } else {
       video.src = videoUrl;
-      video.play();
+      video.addEventListener('loadeddata', handlePlay);
     }
 
     return () => {
       if (hls) hls.destroy();
     };
-  }, [videoUrl]);
+  }, [isPlaying, videoUrl]);
 
   return (
     <div className={styles.videoContainer}>
-      {showProcessing && (
+      {showProcessing && isProcessing && (
         <div className={styles.processingOverlay}>
           <div className={styles.processingSpinner}></div>
           <p>Video is processing...</p>
         </div>
       )}
 
-      <div className={styles.preview} onClick={handlePlay}>
+      <div className={styles.preview} onClick={() => setIsPlaying(true)}>
         <video
           ref={previewRef}
           muted
