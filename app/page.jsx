@@ -3,7 +3,7 @@ import Image from "next/image";
 import styles from "./page.module.css";
 import { useEffect, useState } from "react";
 import VideoPlayer from "./components/videoUpload/VideoPlayer";
-import { checkVideoStatus, fetchVideos } from "./components/utls/showPreview";
+import { checkVideoStatus, fetchVideos } from "./components/utls/utls";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Header from "./components/header/header";

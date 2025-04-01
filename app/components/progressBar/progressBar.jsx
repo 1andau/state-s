@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
-import styles from './inputDesign.module.css';
-import Image from 'next/image';
+import styles from './progressBar.module.css';
 import { showToast } from '../toasts/toasts';
 
 const ProgressBar = ({ onUploadSuccess, onClose }) => {
@@ -74,18 +73,22 @@ const ProgressBar = ({ onUploadSuccess, onClose }) => {
   return (
     <div className={styles.modalOverlay}>
       <div className={styles.modalContent}>
-        <button className={styles.closeButton} onClick={onClose}>×</button>
         
         <h2 className={styles.title}>Share your reaction</h2>
         <p className={styles.subtitle}>emotion!s</p>
         
+
         <div className={styles.previewContainer}>
           {previewUrl ? (
             <video controls src={previewUrl} className={styles.previewVideo} />
           ) : (
-            <div className={styles.previewPlaceholder}>Preview</div>
+            <div className={styles.previewPlaceholder}>
+              <span className={styles.previewText}>Preview</span>
+            </div>
           )}
         </div>
+
+
         
         <div className={styles.progressContainer}>
           <div className={styles.progressBar}>

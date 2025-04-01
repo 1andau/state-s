@@ -14,87 +14,86 @@ export default function Home() {
   const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true); // Состояние загрузки
   const [newVideoAdded, setNewVideoAdded] = useState(false); // Флаг нового видео
-  
-    // Загрузка видео с принудительным обновлением
-    const loadVideos = async (force = false) => {
-      try {
-        console.log("Fetching videos...");
-        const videosData = await fetchVideos();
-        
-        // Принудительное обновление если есть новые видео
-        if (force || newVideoAdded) {
-          console.log("Force updating videos list");
-          setVideos(videosData);
-          setNewVideoAdded(false);
-        } 
-        // Или обычное обновление если список пустой
-        else if (videos.length === 0) {
-          setVideos(videosData);
-        }
-  
-        // Запускаем проверку статуса для всех видео в обработке
-        videosData.forEach(video => {
-          if (!video.readyToStream) {
-            startVideoStatusCheck(video.uid);
-          }
-        });
-      } catch (error) {
-        console.error('Error loading videos:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-  
-    // Проверка статуса видео
-    const startVideoStatusCheck = (videoUid) => {
-      const interval = setInterval(async () => {
-        try {
-          const updatedVideo = await checkVideoStatus(videoUid);
-          console.log("Video status check:", updatedVideo.uid, updatedVideo.readyToStream);
-          
-          if (updatedVideo.readyToStream) {
-            clearInterval(interval);
-            setVideos(prev => prev.map(v => 
-              v.uid === videoUid ? { 
-                ...v, 
-                readyToStream: true,
-                // Важно обновить URL, так как после обработки он может измениться!
-                playback: {
-                  ...v.playback,
-                  hls: `https://customer-b7p449dj2tzggbg3.cloudflarestream.com/${videoUid}/manifest/video.m3u8`
-                }
-              } : v
-            ));
-          }
-        } catch (error) {
-          console.error('Status check error:', error);
-        }
-      }, 5000); // Проверяем каждые 5 секунд
-  
-      return interval;
-    };
-  
-    // Первоначальная загрузка
-    useEffect(() => {
-      loadVideos();
-    }, []);
-  
-    // Обработчик нового видео
-    const handleNewVideoUploaded = (newVideo) => {
-      console.log("New video uploaded:", newVideo.uid);
-      setVideos(prev => [newVideo, ...prev]);
-      setNewVideoAdded(true); // Устанавливаем флаг нового видео
-      startVideoStatusCheck(newVideo.uid); // Начинаем проверку статуса
+
+  // Загрузка видео с принудительным обновлением
+  const loadVideos = async (force = false) => {
+    try {
+      console.log("Fetching videos...");
+      const videosData = await fetchVideos();
       
-      // Принудительно обновляем список через 10 секунд
-      setTimeout(() => loadVideos(true), 10000);
-    };
-  
-  
-    const getVideoOrientation = (width, height) => {
-      return width > height ? 'landscape' : 'portrait';
-    };
-  
+      // Принудительное обновление если есть новые видео
+      if (force || newVideoAdded) {
+        console.log("Force updating videos list");
+        setVideos(videosData);
+        setNewVideoAdded(false);
+      } 
+      // Или обычное обновление если список пустой
+      else if (videos.length === 0) {
+        setVideos(videosData);
+      }
+
+      // Запускаем проверку статуса для всех видео в обработке
+      videosData.forEach(video => {
+        if (!video.readyToStream) {
+          startVideoStatusCheck(video.uid);
+        }
+      });
+    } catch (error) {
+      console.error('Error loading videos:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Проверка статуса видео
+  const startVideoStatusCheck = (videoUid) => {
+    const interval = setInterval(async () => {
+      try {
+        const updatedVideo = await checkVideoStatus(videoUid);
+        console.log("Video status check:", updatedVideo.uid, updatedVideo.readyToStream);
+        
+        if (updatedVideo.readyToStream) {
+          clearInterval(interval);
+          setVideos(prev => prev.map(v => 
+            v.uid === videoUid ? { 
+              ...v, 
+              readyToStream: true,
+              // Важно обновить URL, так как после обработки он может измениться!
+              playback: {
+                ...v.playback,
+                hls: `https://customer-b7p449dj2tzggbg3.cloudflarestream.com/${videoUid}/manifest/video.m3u8`
+              }
+            } : v
+          ));
+        }
+      } catch (error) {
+        console.error('Status check error:', error);
+      }
+    }, 5000); // Проверяем каждые 5 секунд
+
+    return interval;
+  };
+
+  // Первоначальная загрузка
+  useEffect(() => {
+    loadVideos();
+  }, []);
+
+  // Обработчик нового видео
+  const handleNewVideoUploaded = (newVideo) => {
+    console.log("New video uploaded:", newVideo.uid);
+    setVideos(prev => [newVideo, ...prev]);
+    setNewVideoAdded(true); // Устанавливаем флаг нового видео
+    startVideoStatusCheck(newVideo.uid); // Начинаем проверку статуса
+    
+    // Принудительно обновляем список через 10 секунд
+    setTimeout(() => loadVideos(true), 10000);
+  };
+
+
+  const getVideoOrientation = (width, height) => {
+    return width > height ? 'landscape' : 'portrait';
+  };
 
 
   return (
