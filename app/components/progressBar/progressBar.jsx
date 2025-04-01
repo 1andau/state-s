@@ -17,14 +17,39 @@ const ProgressBar = ({ onUploadSuccess, onClose }) => {
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
-    setFile(selectedFile);
-    setUploadComplete(false);
+    if (!selectedFile) return;
 
-    if (selectedFile) {
-      const url = URL.createObjectURL(selectedFile);
+    // Создаем временный URL для предпросмотра и проверки длительности
+    const url = URL.createObjectURL(selectedFile);
+    
+    // Создаем видео элемент для проверки метаданных
+    const video = document.createElement('video');
+    video.preload = 'metadata';
+    video.onloadedmetadata = () => {
+      window.URL.revokeObjectURL(video.src); // Освобождаем память
+      
+      // Проверяем длительность видео
+      if (video.duration > 60) {
+        showToast('The video must be no longer than 60 seconds.', 'Видео должно быть не длиннее 60 секунд');
+        e.target.value = ''; // Сбрасываем input file
+        return;
+      }
+      
+      // Если видео подходит по длине
+      setFile(selectedFile);
+      setUploadComplete(false);
       setPreviewUrl(url);
-    }
+    };
+    
+    video.onerror = () => {
+      showToast('error', 'Не удалось прочитать видео');
+      window.URL.revokeObjectURL(video.src);
+    };
+    
+    video.src = url;
   };
+
+
 
   const handleUpload = async () => {
     if (!file) return;
