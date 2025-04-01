@@ -157,7 +157,7 @@
 .shareButton {
     color: #fff;
     width: 200px;
-    background-color: #4CAF50; /* Зеленый цвет для кнопки Share */
+    background-color: #2563eb; /* Зеленый цвет для кнопки Share */
     border-radius: 20px;
     padding: 12px 24px;
     font-family: 'Montserrat', sans-serif;
@@ -169,14 +169,10 @@
   }
   
   .shareButton:hover {
-    background-color: #45a049;
+    background-color: #11337c;
   }
   
-  .uploadActions {
-    display: flex;
-    align-items: center;
-    gap: 16px;
-  }
+
 
   .buttonSpinner {
     display: inline-block;

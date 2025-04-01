@@ -101,12 +101,12 @@ const VideoPlayer = ({ videoUrl, isProcessing }) => {
   return (
     <div className={styles.videoContainer}>
       {/* Оверлей обработки */}
-      {showProcessing && (
-        <div className={styles.processingOverlay}>
-          <div className={styles.processingSpinner}></div>
-          <p>Video is processing...</p>
+{isProcessing ? (
+        <div className={styles.videoProcessing}>
+          <div className={styles.loader}></div>
+          <span className={styles.videoProcessingText}>Video is processing...</span>
         </div>
-      )}
+      ) : null}
 
       {/* Кликабельное превью */}
       <div className={styles.preview} onClick={() => setIsPlaying(true)}>

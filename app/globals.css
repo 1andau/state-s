@@ -58,12 +58,28 @@ body {
   padding-top: 100px; /* Высота хедера */
 }
 
-
 @media (max-width: 768px) {
-  body{
+  .content{
     width: 90%;
+    margin: 0 auto;
   }
 }
+
+/* @media (max-width: 768px) {
+  body{
+    width: 90%;
+    margin: 0 auto;
+  }
+}
+
+@media (max-width: 268px) {
+  body{
+    width: 100%;
+    margin: 0 auto;
+
+  }
+} */
+
 * {
   box-sizing: border-box;
   padding: 0;
