@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import styles from './progressBar.module.css';
 import { showToast } from '../toasts/toasts';
@@ -7,49 +7,57 @@ const ProgressBar = ({ onUploadSuccess, onClose }) => {
   const [file, setFile] = useState(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isUploading, setIsUploading] = useState(false);
-  const [previewUrl, setPreviewUrl] = useState(null);
   const [uploadComplete, setUploadComplete] = useState(false);
   const [videoData, setVideoData] = useState(null);
-  const [isSharing, setIsSharing] = useState(false); // Добавляем состояние для лоадера
+  const [isSharing, setIsSharing] = useState(false);
   const [shareStatus, setShareStatus] = useState('');
+  
+  const videoRef = useRef(null);
+  const localVideoUrlRef = useRef(null);
 
-
+  // Очистка Blob URL при размонтировании
+  useEffect(() => {
+    return () => {
+      if (localVideoUrlRef.current) {
+        URL.revokeObjectURL(localVideoUrlRef.current);
+      }
+    };
+  }, []);
 
   const handleFileChange = (e) => {
     const selectedFile = e.target.files[0];
     if (!selectedFile) return;
 
-    // Создаем временный URL для предпросмотра и проверки длительности
+    // Освобождаем предыдущий URL если есть
+    if (localVideoUrlRef.current) {
+      URL.revokeObjectURL(localVideoUrlRef.current);
+    }
+
     const url = URL.createObjectURL(selectedFile);
-    
-    // Создаем видео элемент для проверки метаданных
+    localVideoUrlRef.current = url;
+
     const video = document.createElement('video');
     video.preload = 'metadata';
+    
     video.onloadedmetadata = () => {
-      window.URL.revokeObjectURL(video.src); // Освобождаем память
-      
-      // Проверяем длительность видео
       if (video.duration > 60) {
-        showToast('The video must be no longer than 60 seconds.', 'Видео должно быть не длиннее 60 секунд');
-        e.target.value = ''; // Сбрасываем input file
+        showToast('Video must be ≤60 seconds', 'Видео не должно превышать 60 секунд');
+        e.target.value = '';
+        URL.revokeObjectURL(url);
         return;
       }
       
-      // Если видео подходит по длине
       setFile(selectedFile);
       setUploadComplete(false);
-      setPreviewUrl(url);
     };
     
     video.onerror = () => {
-      showToast('error', 'Не удалось прочитать видео');
-      window.URL.revokeObjectURL(video.src);
+      showToast('Error', 'Failed to read video');
+      URL.revokeObjectURL(url);
     };
     
     video.src = url;
   };
-
-
 
   const handleUpload = async () => {
     if (!file) return;
@@ -76,22 +84,20 @@ const ProgressBar = ({ onUploadSuccess, onClose }) => {
       );
 
       setVideoData(response.data.result);
-      setPreviewUrl(response.data.result.playback.hls);
       setUploadComplete(true);
     } catch (error) {
-      console.error('Error uploading video:', error);
+      console.error('Upload error:', error);
       showToast("Upload failed", "error");
     } finally {
       setIsUploading(false);
     }
   };
-  
+
   const handleShare = async () => {
     setIsSharing(true);
-    setShareStatus('Processing video...');
+    setShareStatus('Processing...');
     
     try {
-      // Ждем пока видео станет доступным
       await new Promise(resolve => {
         const checkInterval = setInterval(async () => {
           try {
@@ -102,11 +108,8 @@ const ProgressBar = ({ onUploadSuccess, onClose }) => {
             
             if (status.data.result.readyToStream) {
               clearInterval(checkInterval);
-              setShareStatus('Video ready!');
-              setTimeout(() => {
-                onUploadSuccess(status.data.result);
-                onClose();
-              }, 1000);
+              onUploadSuccess(status.data.result);
+              onClose();
             }
           } catch (error) {
             console.error('Status check failed:', error);
@@ -121,14 +124,19 @@ const ProgressBar = ({ onUploadSuccess, onClose }) => {
   return (
     <div className={styles.modalOverlay}>
       <div className={styles.modalContent}>
-        
         <h2 className={styles.title}>Share your reaction</h2>
         <p className={styles.subtitle}>emotion!s</p>
-        
 
+        {/* Превью выбранного видео */}
         <div className={styles.previewContainer}>
-          {previewUrl ? (
-            <video controls src={previewUrl} className={styles.previewVideo} />
+          {file ? (
+            <video
+              ref={videoRef}
+              src={localVideoUrlRef.current}
+              controls
+              className={styles.previewVideo}
+              key={localVideoUrlRef.current} // Форсируем пересоздание элемента при изменении
+            />
           ) : (
             <div className={styles.previewPlaceholder}>
               <span className={styles.previewText}>Preview</span>
@@ -136,8 +144,6 @@ const ProgressBar = ({ onUploadSuccess, onClose }) => {
           )}
         </div>
 
-
-        
         <div className={styles.progressContainer}>
           <div className={styles.progressBar}>
             <div 
@@ -176,13 +182,12 @@ const ProgressBar = ({ onUploadSuccess, onClose }) => {
               onClick={handleShare}
               disabled={isSharing}
             >
-                      {isSharing ? (
-        <>
-          <div className={styles.buttonSpinner}></div>
-          {shareStatus}
-                  </>
-      ) : 'Share'}
-
+              {isSharing ? (
+                <>
+                  <div className={styles.buttonSpinner}></div>
+                  {shareStatus}
+                </>
+              ) : 'Share'}
             </button>
           )}
         </div>
