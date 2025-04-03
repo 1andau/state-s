@@ -3,83 +3,68 @@ import { useEffect, useRef, useState } from 'react';
 import Hls from 'hls.js';
 import styles from './videoPlayer.module.css';
 
-const VideoPlayer = ({ videoUrl, isProcessing }) => {
+const VideoPlayer = ({ videoUrl, isProcessing, thumbnailUrl }) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const videoRef = useRef(null);
   const previewRef = useRef(null);
   const [showProcessing, setShowProcessing] = useState(true);
-  const [retryCount, setRetryCount] = useState(0);
-  const loopTimeoutRef = useRef(null); // Реф для таймера цикла
+  const hlsInstance = useRef(null);
+  const playbackTimeout = useRef(null);
 
-  // Очистка при размонтировании
+  // Однократное 4-секундное воспроизведение превью
   useEffect(() => {
-    return () => {
-      if (loopTimeoutRef.current) {
-        clearTimeout(loopTimeoutRef.current);
-      }
-    };
-  }, []);
-
-  // Магия загрузки превью с бесконечным циклом
-  useEffect(() => {
-    if (!previewRef.current || !videoUrl) return;
+    if (!previewRef.current || !videoUrl || isProcessing) return;
 
     const video = previewRef.current;
     let hls;
 
-    const startLoop = () => {
-      video.currentTime = 0;
-      video.play()
-        .then(() => {
-          loopTimeoutRef.current = setTimeout(() => {
-            startLoop(); // Рекурсивный вызов для бесконечного цикла
-          }, 3000);
-        })
-        .catch(e => console.log('⚠️ Ошибка воспроизведения:', e));
-    };
-
     const handleSuccess = () => {
-      console.log('✅ Превью успешно загружено');
       setShowProcessing(false);
-      startLoop(); // Запускаем цикл после успешной загрузки
+      video.currentTime = 0;
+      
+      const playPreview = () => {
+        video.play()
+          .then(() => {
+            // Останавливаем после 4 секунд
+            playbackTimeout.current = setTimeout(() => {
+              video.pause();
+              video.currentTime = 0;
+            }, 3000);
+          })
+          .catch(e => console.log('Autoplay blocked:', e));
+      };
+
+      if (Hls.isSupported()) {
+        hls = new Hls({
+          maxMaxBufferLength: 1,
+          xhrSetup: (xhr) => xhr.withCredentials = false
+        });
+
+        hls.on(Hls.Events.MANIFEST_PARSED, playPreview);
+        hls.loadSource(videoUrl);
+        hls.attachMedia(video);
+        hlsInstance.current = hls;
+      } else {
+        video.src = videoUrl;
+        video.addEventListener('loadeddata', playPreview);
+      }
     };
 
-    if (Hls.isSupported()) {
-      hls = new Hls({
-        maxMaxBufferLength: 1,
-        xhrSetup: (xhr) => {
-          xhr.withCredentials = false;
-        }
-      });
-
-      hls.on(Hls.Events.MANIFEST_PARSED, handleSuccess);
-      hls.on(Hls.Events.ERROR, () => {
-        console.log('🔄 Попытка перезагрузки превью...');
-        setRetryCount(prev => prev + 1);
-      });
-
-      hls.loadSource(videoUrl);
-      hls.attachMedia(video);
-    } else {
-      video.src = videoUrl;
-      video.addEventListener('loadeddata', handleSuccess);
-      video.addEventListener('error', () => {
-        console.log('🔄 Ошибка видео, пробуем снова...');
-        setRetryCount(prev => prev + 1);
-      });
-    }
+    handleSuccess();
 
     return () => {
-      if (loopTimeoutRef.current) {
-        clearTimeout(loopTimeoutRef.current);
+      clearTimeout(playbackTimeout.current);
+      if (hlsInstance.current) {
+        hlsInstance.current.destroy();
+        hlsInstance.current = null;
       }
-      if (hls) hls.destroy();
     };
-  }, [videoUrl, retryCount]);
+  }, [videoUrl, isProcessing]);
 
   // Основной плеер (без изменений)
   useEffect(() => {
     if (!isPlaying || !videoRef.current) return;
+    
     const video = videoRef.current;
     let hls;
 
@@ -100,25 +85,23 @@ const VideoPlayer = ({ videoUrl, isProcessing }) => {
 
   return (
     <div className={styles.videoContainer}>
-      {/* Оверлей обработки */}
-{isProcessing ? (
+      {isProcessing ? (
         <div className={styles.videoProcessing}>
           <div className={styles.loader}></div>
           <span className={styles.videoProcessingText}>Video is processing...</span>
         </div>
       ) : null}
 
-      {/* Кликабельное превью */}
       <div className={styles.preview} onClick={() => setIsPlaying(true)}>
         <video
           ref={previewRef}
           muted
           playsInline
           className={styles.previewVideo}
+          poster={thumbnailUrl} // Показываем thumbnail после остановки
         />
       </div>
 
-      {/* Модальное окно плеера */}
       {isPlaying && (
         <div className={styles.modalOverlay} onClick={() => setIsPlaying(false)}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>

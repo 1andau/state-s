@@ -88,11 +88,34 @@ const ProgressBar = ({ onUploadSuccess, onClose }) => {
   
   const handleShare = async () => {
     setIsSharing(true);
+    setShareStatus('Processing video...');
     
-    // Просто ждем 5 секунд перед закрытием
-    await new Promise(resolve => setTimeout(resolve, 5000));
-    onUploadSuccess(videoData);
-    onClose();
+    try {
+      // Ждем пока видео станет доступным
+      await new Promise(resolve => {
+        const checkInterval = setInterval(async () => {
+          try {
+            const status = await axios.get(
+              `https://api.cloudflare.com/client/v4/accounts/${process.env.NEXT_PUBLIC_CLOUDFLARE_ACCOUNT_ID}/stream/${videoData.uid}`,
+              { headers: { Authorization: `Bearer ${process.env.NEXT_PUBLIC_CLOUDFLARE_API_TOKEN}` } }
+            );
+            
+            if (status.data.result.readyToStream) {
+              clearInterval(checkInterval);
+              setShareStatus('Video ready!');
+              setTimeout(() => {
+                onUploadSuccess(status.data.result);
+                onClose();
+              }, 1000);
+            }
+          } catch (error) {
+            console.error('Status check failed:', error);
+          }
+        }, 3000);
+      });
+    } finally {
+      setIsSharing(false);
+    }
   };
 
   return (

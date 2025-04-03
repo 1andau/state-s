@@ -7,92 +7,46 @@ import { checkVideoStatus, fetchVideos } from "./components/utls/utls";
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Header from "./components/header/header";
+import { useSocket } from "./providers/SocketProvider";
 
 export default function Home() {
-  const [videos, setVideos] = useState([]);
   const [loading, setLoading] = useState(true); // Состояние загрузки
-  const [newVideoAdded, setNewVideoAdded] = useState(false); // Флаг нового видео
+  const [visibleVideos, setVisibleVideos] = useState(8);
+  const {videos, isConnected, socket} = useSocket()
 
-  // Загрузка видео с принудительным обновлением
-  const loadVideos = async (force = false) => {
-    try {
-      console.log("Fetching videos...");
-      const videosData = await fetchVideos();
-      
-      // Принудительное обновление если есть новые видео
-      if (force || newVideoAdded) {
-        console.log("Force updating videos list");
-        setVideos(videosData);
-        setNewVideoAdded(false);
-      } 
-      // Или обычное обновление если список пустой
-      else if (videos.length === 0) {
-        setVideos(videosData);
+  // Ленивая загрузка при скролле
+  useEffect(() => {
+    const handleScroll = () => {
+      if (
+        window.innerHeight + window.scrollY >= 
+        document.body.offsetHeight - 500 &&
+        visibleVideos < videos.length
+      ) {
+        setVisibleVideos(prev => prev + 6);
       }
+    };
 
-      // Запускаем проверку статуса для всех видео в обработке
-      videosData.forEach(video => {
-        if (!video.readyToStream) {
-          startVideoStatusCheck(video.uid);
-        }
-      });
-    } catch (error) {
-      console.error('Error loading videos:', error);
-    } finally {
-      setLoading(false);
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, [visibleVideos, videos.length]);
+
+  // Обновление состояния загрузки
+  useEffect(() => {
+    setLoading(!isConnected || videos.length === 0);
+  }, [isConnected, videos]);
+
+  const handleNewVideoUploaded = (newVideo) => {
+    if (socket?.readyState === WebSocket.OPEN) {
+      socket.send(JSON.stringify({ 
+        type: "NEW_VIDEO", 
+        video: newVideo 
+      }));
     }
   };
-
-  // Проверка статуса видео
-  const startVideoStatusCheck = (videoUid) => {
-    const interval = setInterval(async () => {
-      try {
-        const updatedVideo = await checkVideoStatus(videoUid);
-        console.log("Video status check:", updatedVideo.uid, updatedVideo.readyToStream);
-        
-        if (updatedVideo.readyToStream) {
-          clearInterval(interval);
-          setVideos(prev => prev.map(v => 
-            v.uid === videoUid ? { 
-              ...v, 
-              readyToStream: true,
-              // Важно обновить URL, так как после обработки он может измениться!
-              playback: {
-                ...v.playback,
-                hls: `https://customer-b7p449dj2tzggbg3.cloudflarestream.com/${videoUid}/manifest/video.m3u8`
-              }
-            } : v
-          ));
-        }
-      } catch (error) {
-        console.error('Status check error:', error);
-      }
-    }, 5000); // Проверяем каждые 5 секунд
-
-    return interval;
-  };
-
-  // Первоначальная загрузка
-  useEffect(() => {
-    loadVideos();
-  }, []);
-
-  // Обработчик нового видео
-  const handleNewVideoUploaded = (newVideo) => {
-    console.log("New video uploaded:", newVideo.uid);
-    setVideos(prev => [newVideo, ...prev]);
-    setNewVideoAdded(true); // Устанавливаем флаг нового видео
-    startVideoStatusCheck(newVideo.uid); // Начинаем проверку статуса
-    
-    // Принудительно обновляем список через 10 секунд
-    setTimeout(() => loadVideos(true), 10000);
-  };
-
 
   const getVideoOrientation = (width, height) => {
     return width > height ? 'landscape' : 'portrait';
   };
-
 
   
 
@@ -137,17 +91,16 @@ export default function Home() {
       <h2 className={styles.secondTitle}>Reactions to the album</h2>
 
       <div className={styles.container}>
-
-        {loading ? ( // Отображение лоадера, если идет загрузка
+        {loading ? (
           <div className={styles.loaderContainer}>
             <div className={styles.loader}></div>
-            <p>Loading videos...</p>
+            <p>{!isConnected ? "Connecting to server..." : "Loading videos..."}</p>
           </div>
         ) : (
           <div className={styles.videoGrid}>
-            {videos.map((video, index) => {
+            {videos.slice(0, visibleVideos).map((video) => {
               const orientation = getVideoOrientation(video.input.width, video.input.height);
-
+              
               return (
                 <div
                   key={video.uid}
@@ -156,12 +109,11 @@ export default function Home() {
                   }`}
                 >
                   <VideoPlayer
-                    videoUrl={video.playback.hls}
+                    videoUrl={video.playback?.hls}
                     thumbnailUrl={video.thumbnail}
-                    widthVideo={video.input.width}
-                    heightVideo={video.input.height}
-  isProcessing={!video.readyToStream}
-  
+                    widthVideo={video.input?.width}
+                    heightVideo={video.input?.height}
+                    isProcessing={!video.readyToStream}
                   />
                 </div>
               );
@@ -169,7 +121,6 @@ export default function Home() {
           </div>
         )}
       </div>
-
 
     </div>
   );
